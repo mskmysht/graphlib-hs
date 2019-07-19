@@ -1,0 +1,6 @@
+.stack-work/
+graphlib-hs.cabal
+*~
+garbage/
+sfmt-hs/
+*.prof
