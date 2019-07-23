@@ -14,7 +14,6 @@ type NodeId = Int
 type NWith n = (NodeId, n)
 type Pair n = (n, n)
 type PairWith n e = (n, n, e)
--- type NPair = Pair NodeId
 
 
 data IsDirect = Directed | Undirected
@@ -24,7 +23,6 @@ class Couple (d :: IsDirect) where
   couple :: NodeId -> NodeId -> C d
   isSource :: NodeId -> C d -> Bool
   isSink :: NodeId -> C d -> Bool
-  -- type D d = r | r -> d
 
 opposite :: NodeId -> C d -> NodeId
 {-# INLINE opposite #-}
@@ -71,8 +69,6 @@ instance Unwrap (Pair n') (PairWith n' e) where
   unwrap (n, m, e) = (n, m)
   {-# INLINE unwrap #-}
 
--- instance Wrapping (Pair NodeId) (Pair NodeId) (Pair NodeId) where
--- instance Wrapping NodeId NodeId NodeId where
 instance Wrap a a a where
   wrap = const
   {-# INLINE wrap #-}
@@ -84,6 +80,16 @@ instance Unwrap a a where
 instance Unwrap i n' => Unwrap (Pair i) (Pair n') where
   unwrap (n, m) = (unwrap n, unwrap m)
   {-# INLINE unwrap #-}
+
+
+class Direction g (d :: IsDirect) where
+  isDirect :: g d -> Bool
+
+instance Direction g 'Directed where
+  isDirect g = True
+
+instance Direction g 'Undirected where
+  isDirect g = False
 
 
 class Traversable t => Graph g t n' e' | g -> t n' e' where
@@ -122,7 +128,3 @@ class Couple d => Builder g d where
 
 class Couple d => BasicBuilder g d where
   assocB :: Int -> [Pair NodeId] -> g d
-
--- Basic Graph generator and accesssor
--- assocB :: Builder g => Int -> [PairWith NodeId e] -> g NodeId e
--- assocB n = assoc [0 .. (n - 1)]
