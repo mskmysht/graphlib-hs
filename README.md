@@ -1,1 +1,1 @@
-# graphSim
+# graph library for Haskell
