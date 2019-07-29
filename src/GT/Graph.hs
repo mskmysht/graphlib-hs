@@ -133,13 +133,13 @@ instance Couple d => Graph (BasicGr d) Sq.Seq NodeId (Pair NodeId) where
 
 
 intmapToSeq :: (IM.Key -> v -> a) -> IM.IntMap v -> Sq.Seq a
-intmapToSeq f = IM.foldlWithKey (\s k v -> f k v Sq.<| s) Sq.empty
+intmapToSeq f = IM.foldlWithKey (\s k v -> s Sq.|> f k v) Sq.empty
 
 hashmapToSeq :: (k -> v -> a) -> H.HashMap k v -> Sq.Seq a
-hashmapToSeq f = H.foldlWithKey' (\s k v -> f k v Sq.<| s) Sq.empty
+hashmapToSeq f = H.foldlWithKey' (\s k v -> s Sq.|> f k v) Sq.empty
 
 toSeq :: Foldable f => (v -> a) -> f v -> Sq.Seq a
-toSeq f = foldl (\s v -> f v Sq.<| s) Sq.empty
+toSeq f = foldl (\s v -> s Sq.|> f v) Sq.empty
 
 intmapToVector :: forall v a . (IM.Key -> v -> a) -> IM.IntMap v -> V.Vector a
 intmapToVector f hm = V.create stv where
