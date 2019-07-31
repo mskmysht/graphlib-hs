@@ -20,6 +20,8 @@ import qualified Data.Set as S
 import Data.Witherable (Witherable, mapMaybe)
 import Prelude hiding (mapMaybe)
 
+import System.Environment (getArgs)
+
 sample :: IO ()
 sample = do
   let es = [(3, 0), (1, 2), (2, 1), (3, 1)]
@@ -61,29 +63,35 @@ readML = do
     Just g -> return g
     Nothing -> exitFailure
 
-experiment :: (Witherable t, Graph g t (NWith n) (PairWith (NWith n) e), EdgeAccessor g t (NWith n) e) => g -> IO ()
-experiment g = do
+propexp :: (Witherable t, Graph g t (NWith n) (PairWith (NWith n) e), EdgeAccessor g t (NWith n) e) => Int -> g -> IO ()
+propexp seed g = do
   let ns = nodes g
-  let rad = (fromIntegral $ nodeSize g) / (sum $ mapMaybe (\(i, _) -> adjNodeFold i g (\d _ -> d + 1) 0) ns)
+  let rad = fromIntegral (nodeSize g) / sum (mapMaybe (\(i, _) -> adjNodeFold i g (\d _ -> d + 1) 0) ns)
   let l = truncate $ 0.05 * fromIntegral (nodeSize g) :: Int
   let ias = [0 .. (l - 1)] -- [0, 1, 2]
   print (rad, l)
-  -- print $ fmap (\i -> adjNodeCont i g id) ias
-  (_, ts) <- propagateUntil (const $ rad * 2) g ( \c t (_, a) -> (S.size c, (S.size t):a) ) (
-    \case
-      (n, _) -> n == 0
-      -- _ -> True
-    ) (S.fromList ias) (0, []) 1234
+  let (ss, ts) = propagateUntil (const $ rad * 2) g ( \c t (_, a) -> (S.size c, S.size t : a) ) (
+        \case
+          (n, _) -> n == 0
+        ) (S.fromList ias) (0, []) seed
+  print ss
   print ts
 
-main :: IO ()
-main = do
+readexp :: IO ()
+readexp = do
   -- g <- barabasiAlbert 100 5 1234 id (\i j -> (i, j, (i, j))) :: IO (UndiMapGr NodeId (Pair NodeId))
   g <- readML
   let es = do
         ((i, n), (j, m), e) <- Q.filter (\(_, _, e) -> M.member "MyBetweennessCentrality" $ edgeValues e) $ edges g
         return ((i, j), edgeValues e M.! "MyBetweennessCentrality")
-  let es' = Q.sortBy (\(_, v) (_, w) -> compare w v) $ es
+  let es' = Q.sortBy (\(_, v) (_, w) -> compare w v) es
   let ses = fst <$> Q.take 20 es'
   let g' = foldl (\g (i, j) -> removeEdge i j g) g ses  
   print $ edgeSize g'
+
+main :: IO ()
+main = do
+  ssd:_ <- getArgs
+  let sd = read ssd
+  g <- readML
+  propexp sd g

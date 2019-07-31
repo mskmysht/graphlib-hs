@@ -8,20 +8,24 @@ import GT.Graph.Class
 import Control.Monad.State.Strict
 import Data.Set
 import Control.Monad.Trans
+import Control.Monad.Primitive
 import Control.Monad.Trans.Maybe
 import System.Random.SFMT
+import Control.Monad.ST (runST)
 
-propagate :: forall n' g t e a . (Unwrap NodeId n', EdgeAccessor g t n' e) =>
+type MonadGen m = Gen (PrimState m)
+
+propagate :: forall n' g t e a m. (Unwrap NodeId n', EdgeAccessor g t n' e, PrimMonad m) =>
   (e -> Double)
    -> g
    -> (Set NodeId -> Set NodeId -> a -> a)
    -> a
-   -> GenIO
-   -> StateT (Set NodeId, Set NodeId) IO a
+   -> MonadGen m
+   -> StateT (Set NodeId, Set NodeId) m a
 propagate pe g f a gen = do
   (cas, tas) <- get
   nas <- foldM (\nas i -> do
-    ms <- runMaybeT $ adjFoldM i g (\s n e -> liftIO $ do
+    ms <- runMaybeT $ adjFoldM i g (\s n e -> lift $ do
       let j = unwrap n
       if member j tas then return s
       else do
@@ -39,7 +43,7 @@ propagate pe g f a gen = do
   return $ f nas tas' a
 
 
-propagateUntil :: forall n' g t e a . (Unwrap NodeId n', EdgeAccessor g t n' e) =>
+propagateUntil :: forall n' g t e a m . (Unwrap NodeId n', EdgeAccessor g t n' e) =>
   (e -> Double)
    -> g
    -> (Set NodeId -> Set NodeId -> a -> a)
@@ -47,12 +51,12 @@ propagateUntil :: forall n' g t e a . (Unwrap NodeId n', EdgeAccessor g t n' e) 
    -> Set NodeId
    -> a
    -> Int
-   -> IO (a, (Set NodeId, Set NodeId))
-propagateUntil pe g f p ias a seed = do
+   -> (a, (Set NodeId, Set NodeId))
+propagateUntil pe g f p ias a seed = runST $ do
   gen <- initializeFromSeed seed
   runStateT (loop gen $ f ias ias a) (ias, ias)
   where
+    loop :: forall m . PrimMonad m => MonadGen m -> a -> StateT (Set NodeId, Set NodeId) m a
     loop gen a'
       | p a' = return a'
       | otherwise = propagate pe g f a' gen >>= loop gen
-   
