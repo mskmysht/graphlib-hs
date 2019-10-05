@@ -32,16 +32,6 @@ sample = do
   print g2
   print $ adjNodeCont 2 g2 id
 
--- repeatBA n m r = replicateM_ r $ do
---   g <- barabasiAlbert n m 1234 (,) assocB :: IO UndiBasicGr
---   return ()
---   -- print $ nodeSize g
-  
--- benchmark :: IO ()
--- benchmark = defaultMain
---   [ bench "BA" $ whnfIO (repeatBA 1000 100 1) ]
--- -- main = repeatBA 1000 100 10
-
 data VNode = VNode
   { nodeId :: Int
   , nodeValues :: M.Map String Double
@@ -54,9 +44,8 @@ data VEdge = VEdge
   , edgeValues :: M.Map String Double
   } deriving Show
 
-readML :: IO (UndiMapGr VNode VEdge)
-readML = do
-  let fp = "/Users/masaaki/Documents/PropagationSimulator/exp_data/PreventPropagation/BA_Spectral/BA000.graphml"
+readML :: FilePath -> IO (UndiMapGr VNode VEdge)
+readML fp = do
   f <- readFile fp
   let mg = parseGraphml (\n m -> compare (nodeId n) (nodeId m)) VNode (\i s t m -> (s, t, VEdge i s t m)) f
   case mg of
@@ -77,13 +66,11 @@ propexp seed g = do
   print ss
   print ts
 
-readexp :: IO ()
-readexp = do
-  -- g <- barabasiAlbert 100 5 1234 id (\i j -> (i, j, (i, j))) :: IO (UndiMapGr NodeId (Pair NodeId))
-  g <- readML
+readexp :: UndiMapGr VNode VEdge -> String -> IO ()
+readexp g property = do
   let es = do
-        ((i, n), (j, m), e) <- Q.filter (\(_, _, e) -> M.member "MyBetweennessCentrality" $ edgeValues e) $ edges g
-        return ((i, j), edgeValues e M.! "MyBetweennessCentrality")
+        ((i, n), (j, m), e) <- Q.filter (\(_, _, e) -> M.member property $ edgeValues e) $ edges g
+        return ((i, j), edgeValues e M.! property)
   let es' = Q.sortBy (\(_, v) (_, w) -> compare w v) es
   let ses = fst <$> Q.take 20 es'
   let g' = foldl (\g (i, j) -> removeEdge i j g) g ses  
@@ -91,7 +78,6 @@ readexp = do
 
 main :: IO ()
 main = do
-  ssd:_ <- getArgs
-  let sd = read ssd
-  g <- readML
-  propexp sd g
+  ssd:fp:_ <- getArgs
+  g <- readML fp
+  propexp (read ssd) g
