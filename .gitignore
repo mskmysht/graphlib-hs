@@ -4,3 +4,4 @@ graphlib-hs.cabal
 garbage/
 sfmt-hs/
 *.prof
+.DS_Store
