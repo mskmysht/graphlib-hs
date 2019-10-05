@@ -174,6 +174,24 @@ accum a svec = do
   return vec'
 
 
+instance Couple d => Builder MapGr d where
+  assoc ns ps = SGr s s (S.size ehs) nmap es   where
+    vcond s n = n >= 0 && n < s
+    econd s (n, m) = vcond s n && vcond s m && n /= m
+    ns' = ns
+    s = length ns'
+    (nmap, _) = foldl (\(im, i) n -> (IM.insert i n im, i + 1)) (IM.empty, 0) ns'
+    (es, ehs) = foldr
+      (\(n, m, e) (hm, hs) ->
+        let q = decouple @d (couple n m)
+        in  if econd s q then (H.insert q e hm, S.insert q hs) else (hm, hs)
+      )
+      (H.empty, S.empty)
+      ps
+  build nf s ps =
+    assoc (fmap nf [0 .. s - 1]) (fmap (\(i, j, ef) -> (i, j, ef i j)) ps)
+
+
 instance Couple d => BasicBuilder BasicGr d where
   assocB s es = SGr s s (S.size ehs) (S.fromList [0 .. s - 1]) ehs   where
     vcond s n = n >= 0 && n < s
@@ -185,21 +203,15 @@ instance Couple d => BasicBuilder BasicGr d where
       )
       S.empty
       es
-
-
-instance Couple d => Builder MapGr d where
-  assoc ns ps = SGr s s (S.size ehs) ns' es   where
-    vcond s n = n >= 0 && n < s
-    econd s (n, m) = vcond s n && vcond s m && n /= m
-    s = length ns
-    (ns', _) = foldl (\(im, i) n -> (IM.insert i n im, i + 1)) (IM.empty, 0) ns
-    (es, ehs) = foldr
-      (\(n, m, e) (hm, hs) ->
-        let q = decouple @d (couple n m)
-        in  if econd s q then (H.insert q e hm, S.insert q hs) else (hm, hs)
-      )
-      (H.empty, S.empty)
-      ps
-  build nf s ps =
-    assoc (fmap nf [0 .. s - 1]) (fmap (\(i, j, ef) -> (i, j, ef i j)) ps)
-
+  assocB1 ns es = SGr s s (S.size ehs) nmap ehs
+    where
+      -- nmap will be distinct and ascend sorted by S.fromList
+      nmap = let (vs, ws) = unzip es in S.fromList $ ns ++ vs ++ ws
+      s = S.size nmap
+      ehs = foldl
+        (\hs (n, m) ->
+          let q@(v, w) = decouple @d (couple n m)
+          in if v /= w then S.insert q hs else hs
+        )
+        S.empty
+        es
