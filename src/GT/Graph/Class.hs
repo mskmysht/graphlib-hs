@@ -73,7 +73,7 @@ instance Wrap a a a where
   wrap = const
   {-# INLINE wrap #-}
 
-instance Unwrap a a where
+instance {-# OVERLAPS #-} (a ~ b) => Unwrap a b where
   unwrap = id
   {-# INLINE unwrap #-}
 
