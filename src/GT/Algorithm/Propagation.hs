@@ -2,21 +2,24 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-module GT.Algorithm.Propagation where
+module GT.Algorithm.Propagation
+  ( propagate
+  , propagateUntil
+  ) where
 
 import GT.Graph.Class
-import Control.Monad.State.Strict
-import Data.Set
-import Control.Monad.Trans
-import Control.Monad.Primitive
-import Control.Monad.Trans.Maybe
-import System.Random.SFMT
+import Control.Monad.State.Strict (StateT, runStateT, get, put, foldM)
+import Data.Pointed (Pointed(..))
+import Control.Monad.Trans (lift)
+import Control.Monad.Primitive (PrimState, PrimMonad)
+import Control.Monad.Trans.Maybe (runMaybeT)
+import System.Random.SFMT (Gen, uniformR, initializeFromSeed)
 import Control.Monad.ST (runST)
 
 type MonadGen m = Gen (PrimState m)
 
 propagate :: forall n' g t e a m s.
-  ( Unwrap NodeId n', EdgeAccessor g t n' e, PrimMonad m, Applicative s, Foldable s, Monoid (s NodeId) ) =>
+  ( Unwrap NodeId n', EdgeAccessor g t n' e, PrimMonad m, Pointed s, Foldable s, Monoid (s NodeId) ) =>
   (e -> Double)
    -> g
    -> (s NodeId -> s NodeId -> a -> a)
@@ -32,7 +35,7 @@ propagate pe g f a gen = do
       else do
         p <- uniformR (0, 1) gen
         return $
-          if p <= pe e then s <> pure j
+          if p <= pe e then s <> point j
           else s
       ) mempty
     return $ case ms of
@@ -45,7 +48,7 @@ propagate pe g f a gen = do
 
 
 propagateUntil :: forall n' g t e a m s.
-  ( Unwrap NodeId n', EdgeAccessor g t n' e, Applicative s, Foldable s, Monoid (s NodeId) ) =>
+  ( Unwrap NodeId n', EdgeAccessor g t n' e, Pointed s, Foldable s, Monoid (s NodeId) ) =>
   (e -> Double)
    -> g
    -> (s NodeId -> s NodeId -> a -> a)

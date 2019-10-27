@@ -33,6 +33,7 @@ dependencies:
 - criterion
 - sfmt
 - primitive
+- pointed
 
 library:
   source-dirs: src
