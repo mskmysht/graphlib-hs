@@ -3,7 +3,23 @@
 # For more information, please see the documentation at:
 #   https://docs.haskellstack.org/en/stable/lock_files
 
-packages: []
+packages:
+- completed:
+    size: 2262236
+    url: https://github.com/mskmysht/sfmt-hs/archive/bc6befbe7f765bddf52be1999e8ae5884413eb57.tar.gz
+    cabal-file:
+      size: 1704
+      sha256: 2be9293d6a85de2c69ca322f6645245ea9dfc721b63892d1ab83c09427fcdc35
+    name: sfmt-mod
+    version: 0.1.0.0
+    sha256: 6f0b5c9718df04d5095e55db749bc02d577193c50c17f4b9f4bcbbf9f8ee768b
+    pantry-tree:
+      size: 6221
+      sha256: 1663d7f716cff98229beeb2dcd47e8bf69af3a6a976a2317260b16b911110d0c
+  original:
+    size: 2262236
+    url: https://github.com/mskmysht/sfmt-hs/archive/bc6befbe7f765bddf52be1999e8ae5884413eb57.tar.gz
+    sha256: 6f0b5c9718df04d5095e55db749bc02d577193c50c17f4b9f4bcbbf9f8ee768b
 snapshots:
 - completed:
     size: 499461

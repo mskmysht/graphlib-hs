@@ -38,7 +38,10 @@ packages:
 # using the same syntax as the packages field.
 # (e.g., acme-missiles-0.3)
 extra-deps:
-- sfmt-hs
+- github: mskmysht/sfmt-hs
+  commit: bc6befbe7f765bddf52be1999e8ae5884413eb57
+  sha256: 6f0b5c9718df04d5095e55db749bc02d577193c50c17f4b9f4bcbbf9f8ee768b
+  size: 2262236
 
 # Override default flag values for local packages and extra-deps
 # flags: {}

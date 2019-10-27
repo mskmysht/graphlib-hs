@@ -31,7 +31,7 @@ dependencies:
 - witherable
 - hmatrix
 - criterion
-- sfmt
+- sfmt-mod
 - primitive
 - pointed
 

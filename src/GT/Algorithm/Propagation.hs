@@ -11,12 +11,10 @@ import GT.Graph.Class
 import Control.Monad.State.Strict (StateT, runStateT, get, put, foldM)
 import Data.Pointed (Pointed(..))
 import Control.Monad.Trans (lift)
-import Control.Monad.Primitive (PrimState, PrimMonad)
+import Control.Monad.Primitive (PrimMonad)
 import Control.Monad.Trans.Maybe (runMaybeT)
-import System.Random.SFMT (Gen, uniformR, initializeFromSeed)
+import System.Random.SFMT (Gen, MonadGen, uniformR, initializeFromSeed)
 import Control.Monad.ST (runST)
-
-type MonadGen m = Gen (PrimState m)
 
 propagate :: forall n' g t e a m s.
   ( Unwrap NodeId n', EdgeAccessor g t n' e, PrimMonad m, Pointed s, Foldable s, Monoid (s NodeId) ) =>

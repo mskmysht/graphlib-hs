@@ -21,6 +21,8 @@ import Data.Foldable (length)
 import Data.Witherable (Witherable, mapMaybe)
 import Prelude hiding (mapMaybe)
 
+import GHC.Exts (fromList)
+
 import System.Environment (getArgs)
 
 sample :: IO ()
@@ -63,9 +65,9 @@ propexp seed g = do
   let (ss, ts) = propagateUntil (const $ rad * 2) g ( \c t (_, a) -> (length c, length t : a) ) (
         \case
           (n, _) -> n == 0
-        ) (Q.fromList ias) (0, []) seed
+        ) (fromList ias) (0, []) seed
   print ss
-  print ts
+  print (ts :: (S.Set NodeId, S.Set NodeId))
 
 readexp :: UndiMapGr VNode VEdge -> String -> IO ()
 readexp g property = do
