@@ -17,6 +17,7 @@ import Criterion.Main
 import qualified Data.Vector as V
 import qualified Data.Sequence as Q
 import qualified Data.Set as S
+import Data.Foldable (length)
 import Data.Witherable (Witherable, mapMaybe)
 import Prelude hiding (mapMaybe)
 
@@ -59,10 +60,10 @@ propexp seed g = do
   let l = truncate $ 0.05 * fromIntegral (nodeSize g) :: Int
   let ias = [0 .. (l - 1)] -- [0, 1, 2]
   print (rad, l)
-  let (ss, ts) = propagateUntil (const $ rad * 2) g ( \c t (_, a) -> (S.size c, S.size t : a) ) (
+  let (ss, ts) = propagateUntil (const $ rad * 2) g ( \c t (_, a) -> (length c, length t : a) ) (
         \case
           (n, _) -> n == 0
-        ) (S.fromList ias) (0, []) seed
+        ) (Q.fromList ias) (0, []) seed
   print ss
   print ts
 
