@@ -3,7 +3,6 @@
 
 module Main where
 
-import GT.Graph.Class
 import GT.Graph
 import GT.Generator.RandomGraph
 import GT.Parse

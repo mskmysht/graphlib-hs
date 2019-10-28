@@ -8,7 +8,7 @@
 
 module GT.Graph.Class where
 
-import Control.Monad.Trans.Maybe
+import Control.Monad.Trans.Maybe (MaybeT)
 
 type NodeId = Int
 type NWith n = (NodeId, n)
