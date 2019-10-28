@@ -6,7 +6,7 @@ module GT.Generator.RandomGraph
   )
 where
 
-import GT.Graph.Class
+import GT.Graph
 import System.Random.SFMT
 import Data.Set as St
 import Data.Sequence as S
@@ -19,7 +19,7 @@ barabasiAlbert :: Builder g d =>
    -> Int -- the number of each degree
    -> Int -- seed value
    -> (NodeId -> n) -- node builder
-   -> (NodeId -> NodeId -> PairWith NodeId e) -- edge builder
+   -> (NodeId -> NodeId -> EWith e) -- edge builder
    -> IO (g n e d)
 barabasiAlbert n m seed nb eb
   | m < 1 || m >= n = error $ "Barabási–Albert network must have m >= 1 and m < n, m = " ++ show m ++ ", n = " ++ show n

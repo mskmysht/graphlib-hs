@@ -1,8 +1,12 @@
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+
 module GT.Parse 
   (parseGraphml)
 where
 
-import GT.Graph.Class
+import GT.Graph
 
 import Data.Tree.NTree.TypeDefs 
 import Text.XML.HXT.Parser.XmlParsec 
@@ -16,7 +20,7 @@ import qualified Data.Map.Strict as M
 parseGraphml :: Builder g d =>
   (n -> n -> Ordering)
    -> (Int -> M.Map String Double -> n)
-   -> (Int -> Int -> Int -> M.Map String Double -> PairWith NodeId e)
+   -> (Int -> EdgeId -> M.Map String Double -> EWith e)
    -> String -- the content of a file
    -> Maybe (g n e d)
 parseGraphml cmp nb eb cnt = do
@@ -28,17 +32,17 @@ parseGraphml cmp nb eb cnt = do
     Just g -> return g
     Nothing -> fail "parse error"
 
-makeGraph :: Builder g d =>
+makeGraph :: forall g d n e . Builder g d =>
   (n -> n -> Ordering)
    -> (Int -> M.Map String Double -> n)
-   -> (Int -> Int -> Int -> M.Map String Double -> PairWith NodeId e)
+   -> (Int -> EdgeId -> M.Map String Double -> EWith e)
    -> XmlTree
    -> Maybe (g n e d)
 makeGraph cmp nb eb gc = do
   let ns = filterTags "node" $ getChildren gc
   let es = filterTags "edge" $ getChildren gc
   vns <- traverse (fromNodeTag nb) ns
-  ves <- traverse (fromEdgeTag eb) es
+  ves <- traverse (fromEdgeTag (\i j -> decouple @d $ couple i j) eb) es
   return $ assoc (sortBy cmp vns) ves
 
 fromNodeTag :: (Int -> M.Map String Double -> a) -> XmlTree -> Maybe a
@@ -47,13 +51,14 @@ fromNodeTag f (NTree n at) = do
   m <- datasToMap $ filterTags "data" at
   return $ f i m
 
-fromEdgeTag :: (Int -> Int -> Int -> M.Map String Double -> a) -> XmlTree -> Maybe a
-fromEdgeTag f (NTree n at) = do
+-- fromEdgeTag :: (Int -> Int -> Int -> M.Map String Double -> a) -> XmlTree -> Maybe a
+fromEdgeTag :: (Int -> Int -> EdgeId) -> (Int -> EdgeId -> M.Map String Double -> a) -> XmlTree -> Maybe a
+fromEdgeTag c f (NTree n at) = do
   i <- getAttr "id" readMaybe n
   s <- getAttr "source" readMaybe n
   t <- getAttr "target" readMaybe n
   m <- datasToMap $ filterTags "data" at
-  return $ f i s t m
+  return $ f i (c s t) m
 
 getAttr :: String -> (String -> Maybe a) -> XNode -> Maybe a
 getAttr name f (XTag _ attrs) = do

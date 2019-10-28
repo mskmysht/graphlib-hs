@@ -49,7 +49,7 @@ data VEdge = VEdge
 readML :: FilePath -> IO (UndiMapGr VNode VEdge)
 readML fp = do
   f <- readFile fp
-  let mg = parseGraphml (\n m -> compare (nodeId n) (nodeId m)) VNode (\i s t m -> (s, t, VEdge i s t m)) f
+  let mg = parseGraphml (\n m -> compare (nodeId n) (nodeId m)) VNode (\i p@(s, t) m -> (p, VEdge i s t m)) f
   case mg of
     Just g -> return g
     Nothing -> exitFailure

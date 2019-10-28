@@ -131,8 +131,8 @@ class (Traversable t, Graph g t n' e') => EdgeAccessor g t n' e' | g -> n' e' wh
 
 class Couple d => Builder g d where
   -- n corresponds NodeId by the index of each n
-  assoc :: [n] -> [PairWith NodeId e] -> g n e d
-  build :: (NodeId -> n) -> Int -> [PairWith NodeId (NodeId -> NodeId -> e)] -> g n e d
+  assoc :: [n] -> [EWith e] -> g n e d
+  build :: (NodeId -> n) -> Int -> [EWith (NodeId -> NodeId -> e)] -> g n e d
 
 
 class Couple d => BasicBuilder g d where

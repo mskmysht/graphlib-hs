@@ -181,14 +181,14 @@ instance Couple d => Builder MapGr d where
     s = length ns'
     (nmap, _) = foldl (\(im, i) n -> (IM.insert i n im, i + 1)) (IM.empty, 0) ns'
     (es, ehs) = foldr
-      (\(n, m, e) (hm, hs) ->
-        let q = decouple @d (couple n m)
+      (\((i, j), e) (hm, hs) ->
+        let q = decouple @d (couple i j)
         in  if econd s q then (H.insert q e hm, S.insert q hs) else (hm, hs)
       )
       (H.empty, S.empty)
       ps
   build nf s ps =
-    assoc (fmap nf [0 .. s - 1]) (fmap (\(i, j, ef) -> (i, j, ef i j)) ps)
+    assoc (fmap nf [0 .. s - 1]) (fmap (\(p@(i, j), ef) -> (p, ef i j)) ps)
 
 
 instance Couple d => BasicBuilder BasicGr d where
