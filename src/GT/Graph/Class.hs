@@ -10,11 +10,17 @@ module GT.Graph.Class where
 
 import Control.Monad.Trans.Maybe (MaybeT)
 
-type NodeId = Int
-type NWith n = (NodeId, n)
 type Pair n = (n, n)
-type PairWith n e = (n, n, e)
 
+type NodeId = Int
+type EdgeId = Pair NodeId
+
+type With i v = (i, v)
+type NWith n = With NodeId n
+type EWith e = With EdgeId e
+
+-- deprecated
+type PairWith n' e = (n', n', e)
 
 data IsDirect = Directed | Undirected
 newtype C (d :: IsDirect) = C { decouple :: Pair NodeId }
@@ -53,18 +59,20 @@ class Unwrap i w => Wrap i v w where
 class Unwrap i w where
   unwrap :: w -> i
 
-instance Wrap NodeId n (NWith n) where
+instance Wrap i v (With i v) where
   wrap = (,)
   {-# INLINE wrap #-}
 
-instance Unwrap NodeId (NWith n) where
+instance Unwrap i (With i v) where
   unwrap = fst
   {-# INLINE unwrap #-}
 
+-- deprecated
 instance Wrap (Pair n') e (PairWith n' e) where
   wrap (n, m) e = (n, m, e)
   {-# INLINE wrap #-}
 
+-- deprecated
 instance Unwrap (Pair n') (PairWith n' e) where
   unwrap (n, m, e) = (n, m)
   {-# INLINE unwrap #-}
@@ -108,17 +116,17 @@ class Traversable t => Graph g t n' e' | g -> t n' e' where
   findNodeIndex :: Eq n' => n' -> g -> Maybe Int
 
 
-pairCont :: (Traversable t, Graph g t n' (Pair NodeId)) => g -> (NodeId -> NodeId -> r) -> t r
+pairCont :: (Traversable t, Graph g t n' EdgeId) => g -> (NodeId -> NodeId -> r) -> t r
 pairCont g f = edgeCont g $ uncurry f
 
 
-class (Traversable t, Graph g t n' (PairWith n' e)) => EdgeAccessor g t n' e | g -> n' e where
-  toPairs :: Eq e => e -> g -> t (Pair NodeId)
-  adjCont :: NodeId -> g -> (n' -> e -> r) -> Maybe (t r)
-  adjContM_ :: Monad m => NodeId -> g -> (n' -> e -> m r) -> m (Maybe ())
-  adjFold :: NodeId -> g -> (r -> n' -> e -> r) -> r -> Maybe r
-  adjFoldM :: Monad m => NodeId -> g -> (r -> n' -> e -> m r) -> r -> MaybeT m r
-  fromPair :: Pair NodeId -> g -> e
+class (Traversable t, Graph g t n' e') => EdgeAccessor g t n' e' | g -> n' e' where
+  -- toPairs :: Eq e' => e' -> g -> t EdgeId
+  adjCont :: NodeId -> g -> (n' -> e' -> r) -> Maybe (t r)
+  adjContM_ :: Monad m => NodeId -> g -> (n' -> e' -> m r) -> m (Maybe ())
+  adjFold :: NodeId -> g -> (r -> n' -> e' -> r) -> r -> Maybe r
+  adjFoldM :: Monad m => NodeId -> g -> (r -> n' -> e' -> m r) -> r -> MaybeT m r
+  fromPair :: EdgeId -> g -> e'
 
 
 class Couple d => Builder g d where

@@ -16,9 +16,9 @@ import Control.Monad.Trans.Maybe (runMaybeT)
 import System.Random.SFMT (Gen, MonadGen, uniformR, initializeFromSeed)
 import Control.Monad.ST (runST)
 
-propagate :: forall n' g t e a m s.
-  ( Unwrap NodeId n', EdgeAccessor g t n' e, PrimMonad m, Pointed s, Foldable s, Monoid (s NodeId) ) =>
-  (e -> Double)
+propagate :: forall n' g t e' a m s.
+  ( Unwrap NodeId n', EdgeAccessor g t n' e', PrimMonad m, Pointed s, Foldable s, Monoid (s NodeId) ) =>
+  (e' -> Double)
    -> g
    -> (s NodeId -> s NodeId -> a -> a)
    -> a

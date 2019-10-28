@@ -44,8 +44,8 @@ data SGr nc ec n e (d :: IsDirect) = SGr
    , es :: !(ec e)
    }
 
-type BasicGr = SGr S.Set S.Set NodeId (Pair NodeId)
-type MapGr = SGr IM.IntMap (H.HashMap (Pair NodeId))
+type BasicGr = SGr S.Set S.Set NodeId EdgeId
+type MapGr = SGr IM.IntMap (H.HashMap EdgeId)
 
 type DiBasicGr = BasicGr 'Directed
 type UndiBasicGr = BasicGr 'Undirected
@@ -61,14 +61,13 @@ instance (Show n, Show e) => Show (MapGr n e d) where
     )
 
 
-instance (Wrap NodeId n (NWith n), Couple d) => Graph (MapGr n e d) Sq.Seq (NWith n) (PairWith (NWith n) e) where
+instance (Wrap NodeId n (NWith n), Couple d) => Graph (MapGr n e d) Sq.Seq (NWith n) (EWith e) where
   nodes g = intmapToSeq wrap $ ns g
-  edges g = hashmapToSeq (\(i, j) e -> (fromId i g, fromId j g, e)) $ es g
+  edges g = hashmapToSeq (,) $ es g
   nodeSize = nc
   edgeSize = ec
   nodeCont g f = intmapToSeq (\i n -> f $ wrap i n) $ ns g
-  edgeCont g f =
-    hashmapToSeq (\(i, j) e -> f (fromId i g, fromId j g, e)) $ es g
+  edgeCont g f = hashmapToSeq (\p e -> f $ wrap p e) $ es g
   adjNodeCont i g f = do
     guard $ IM.member i $ ns g
     let es' = H.filterWithKey (\i' _ -> fst i' == i) $ es g
@@ -84,29 +83,29 @@ instance (Wrap NodeId n (NWith n), Couple d) => Graph (MapGr n e d) Sq.Seq (NWit
   findNodeIndex n g = Sq.elemIndexL n $ nodes g
 
 
-instance (Wrap NodeId n (NWith n), Couple d) => EdgeAccessor (MapGr n e d) Sq.Seq (NWith n) e where
-  toPairs e g = hashmapToSeq const $ H.filter (== e) $ es g
+instance (Wrap NodeId n (NWith n), Couple d) => EdgeAccessor (MapGr n e d) Sq.Seq (NWith n) (EWith e) where
+  -- toPairs e g = hashmapToSeq const $ H.filter (== e) $ es g
   adjCont i g f = do
     guard $ IM.member i $ ns g
     let es' = H.filterWithKey (\p _ -> isSource i $ C @d p) $ es g
-    return $ hashmapToSeq (\p e -> f (fromId (opposite i $ C p) g) e) es'
+    return $ hashmapToSeq (\p e -> f (fromId (opposite i $ C p) g) (wrap p e) ) es'
   adjContM_ i g f =
     if IM.member i $ ns g then
       let es' = H.filterWithKey (\p _ -> isSource i $ C @d p) $ es g
-      in Just <$> forM_ (H.toList es') (\(p, e) -> f (fromId (opposite i (C p)) g) e)
+      in Just <$> forM_ (H.toList es') (\e'@(p, e) -> f (fromId (opposite i (C p)) g) e')
     else
       return Nothing
   adjFold i g f r = do
     guard $ IM.member i $ ns g
     let es' = H.filterWithKey (\p _ -> isSource i $ C @d p) $ es g
-    return $ H.foldlWithKey' (\a p e -> f a (fromId (opposite i $ C @d p) g) e) r es'
+    return $ H.foldlWithKey' (\a p e -> f a (fromId (opposite i $ C @d p) g) (wrap p e)) r es'
   adjFoldM i g f r =
     if IM.member i $ ns g then
       let es' = H.filterWithKey (\p _ -> isSource i $ C @d p) $ es g
-      in lift $ foldM (\a (p, e) -> f a (fromId (opposite i $ C @d p) g) e) r $ H.toList es'
+      in lift $ foldM (\a e'@(p, e) -> f a (fromId (opposite i $ C @d p) g) e') r $ H.toList es'
     else
       MaybeT $ return Nothing
-  fromPair p g = es g H.! p
+  fromPair p g = wrap p $ es g H.! p
 
 
 instance Couple d => Graph (BasicGr d) Sq.Seq NodeId (Pair NodeId) where

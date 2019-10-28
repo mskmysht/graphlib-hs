@@ -54,7 +54,7 @@ readML fp = do
     Just g -> return g
     Nothing -> exitFailure
 
-propexp :: (Witherable t, Graph g t (NWith n) (PairWith (NWith n) e), EdgeAccessor g t (NWith n) e) => Int -> g -> IO ()
+propexp :: (Witherable t, Graph g t (NWith n) (EWith e), EdgeAccessor g t (NWith n) (EWith e)) => Int -> g -> IO ()
 propexp seed g = do
   let ns = nodes g
   let rad = fromIntegral (nodeSize g) / sum (mapMaybe (\(i, _) -> adjNodeFold i g (\d _ -> d + 1) 0) ns)
@@ -71,7 +71,7 @@ propexp seed g = do
 readexp :: UndiMapGr VNode VEdge -> String -> IO ()
 readexp g property = do
   let es = do
-        ((i, n), (j, m), e) <- Q.filter (\(_, _, e) -> M.member property $ edgeValues e) $ edges g
+        ((i, j), e) <- Q.filter (\(_, e) -> M.member property $ edgeValues e) $ edges g
         return ((i, j), edgeValues e M.! property)
   let es' = Q.sortBy (\(_, v) (_, w) -> compare w v) es
   let ses = fst <$> Q.take 20 es'

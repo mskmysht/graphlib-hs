@@ -5,7 +5,7 @@
 module GT.Algorithm.ShortestPath where
 
 import Prelude hiding ( drop, length )
-import GT.Graph.Class
+import GT.Graph
 import qualified Data.HashTable.Class as H
 import qualified Data.HashTable.ST.Cuckoo as C
 import Control.Monad.ST ( ST, runST )
@@ -14,7 +14,7 @@ import Data.STRef
 import Control.Monad ( forM_ )
 
 
-dijkstra :: forall w g' t n e. ( Ord w, Num w, EdgeAccessor g' t (NWith n) e ) => (e -> w) -> NodeId -> NodeId -> g' -> Maybe ( w, Seq NodeId )
+dijkstra :: forall w g' t n e' . ( Ord w, Num w, EdgeAccessor g' t (NWith n) e' ) => (e' -> w) -> NodeId -> NodeId -> g' -> Maybe ( w, Seq NodeId )
 dijkstra len si ti g = runST $ loop ns0 sdpt0
   where
     ns0 = singleton ( 0, si, singleton si )
