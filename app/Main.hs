@@ -1,5 +1,9 @@
 {-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE QuantifiedConstraints #-}
 
 module Main where
 
@@ -11,14 +15,20 @@ import GT.Algorithm.Propagation
 import qualified Data.Map.Strict as M
 
 import System.Exit
+import Control.Lens (Cons)
 import Control.Monad (replicateM_)
+import Control.Monad.Except (ExceptT(..), runExceptT)
+import Control.Monad.Trans (lift)
 import Criterion.Main
 import qualified Data.Vector as V
 import qualified Data.Sequence as Q
 import qualified Data.Set as S
 import Data.Foldable (length)
-import Data.Witherable (Witherable, mapMaybe)
+import Data.Pointed (Pointed)
+import Data.Proxy (Proxy(..))
+import Data.Witherable (Filterable, mapMaybe, catMaybes)
 import Prelude hiding (mapMaybe)
+import Text.Read (readMaybe)
 
 import GHC.Exts (fromList)
 
@@ -26,13 +36,13 @@ import System.Environment (getArgs)
 
 sample :: IO ()
 sample = do
-  let es = [(3, 0), (1, 2), (2, 1), (3, 1)]
-  let g1 = assocB 4 es :: DiBasicGr
+  let es = [(3, 0), (1, 2), (2, 1), (3, 1)] :: [EdgeId]
+  let g1 = assoc ([] :: [NodeId]) es :: DiBasicGr
   print g1
-  print $ adjNodeCont 2 g1 id
-  let g2 = assocB 4 es :: UndiBasicGr
+  print (adjNodeMap id 2 g1 :: Maybe [NodeId])
+  let g2 = assoc ([] :: [NodeId]) es :: UndiBasicGr
   print g2
-  print $ adjNodeCont 2 g2 id
+  print (adjNodeMap id 2 g2 :: Maybe [NodeId])
 
 data VNode = VNode
   { nodeId :: Int
@@ -40,25 +50,22 @@ data VNode = VNode
   } deriving Show
 
 data VEdge = VEdge
-  { edgeId :: Int
+  { edgeId :: Maybe Int
   , source :: Int
   , target :: Int
   , edgeValues :: M.Map String Double
   } deriving Show
 
-readML :: FilePath -> IO (UndiMapGr VNode VEdge)
-readML fp = do
+readML :: FilePath -> ExceptT String IO (UndiMapGr VNode VEdge)
+readML fp = ExceptT $ do
   f <- readFile fp
-  let mg = parseGraphml (\n m -> compare (nodeId n) (nodeId m)) VNode (\i p@(s, t) m -> (p, VEdge i s t m)) f
-  case mg of
-    Just g -> return g
-    Nothing -> exitFailure
+  return $ parseGraphml (\i m -> VNode i (mapMaybe readMaybe m)) (\s t i m -> VEdge i s t (mapMaybe readMaybe m)) f
 
-propexp :: (Witherable t, Graph g t (NWith n) (EWith e), EdgeAccessor g t (NWith n) (EWith e)) => Int -> g -> IO ()
+propexp :: forall d g n n' e. (Pairing d, Unwrap NodeId n', Graph g n' (EWith e) d) => Int -> g -> IO ()
 propexp seed g = do
-  let ns = nodes g
-  let rad = fromIntegral (nodeSize g) / sum (mapMaybe (\(i, _) -> adjNodeFold i g (\d _ -> d + 1) 0) ns)
-  let l = truncate $ 0.05 * fromIntegral (nodeSize g) :: Int
+  let sd = catMaybes @Q.Seq @Double (nodeMap (\n' -> let i = unwrap n' in adjNodeFoldl (\d _ -> d + 1) 0 i g) g)
+  let rad = fromIntegral (nodeCount g) / sum sd
+  let l = truncate $ 0.05 * fromIntegral (nodeCount g) :: Int
   let ias = [0 .. (l - 1)] -- [0, 1, 2]
   print (rad, l)
   let (ss, ts) = propagateUntil (const $ rad * 2) g ( \c t (_, a) -> (length c, length t : a) ) (
@@ -76,10 +83,15 @@ readexp g property = do
   let es' = Q.sortBy (\(_, v) (_, w) -> compare w v) es
   let ses = fst <$> Q.take 20 es'
   let g' = foldl (\g (i, j) -> removeEdge i j g) g ses  
-  print $ edgeSize g'
+  print $ edgeCount g'
 
 main :: IO ()
 main = do
   ssd:fp:_ <- getArgs
-  g <- readML fp
-  propexp (read ssd) g
+  eg <- runExceptT $ readML fp
+  case eg of
+    Left msg -> print msg
+    Right g -> do
+      print (nodeMap fst g :: [NodeId])
+      print (edgeMap fst g :: [EdgeId])
+      propexp (read ssd) g

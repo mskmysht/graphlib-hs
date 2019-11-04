@@ -14,7 +14,7 @@ import Data.STRef
 import Control.Monad ( forM_ )
 
 
-dijkstra :: forall w g' t n e' . ( Ord w, Num w, EdgeAccessor g' t (NWith n) e' ) => (e' -> w) -> NodeId -> NodeId -> g' -> Maybe ( w, Seq NodeId )
+dijkstra :: forall d w g n' e' . (Unwrap NodeId n', Pairing d, Ord w, Num w, Graph g n' e' d) => (e' -> w) -> NodeId -> NodeId -> g -> Maybe (w, Seq NodeId)
 dijkstra len si ti g = runST $ loop ns0 sdpt0
   where
     ns0 = singleton ( 0, si, singleton si )
@@ -23,13 +23,14 @@ dijkstra len si ti g = runST $ loop ns0 sdpt0
         H.insert ht si 0
         return ht
 
-    loop :: forall s. Seq ( w, NodeId, Seq NodeId ) -> ST s (C.HashTable s NodeId w) -> ST s (Maybe ( w, Seq NodeId ))
+    loop :: forall s. Seq (w, NodeId, Seq NodeId) -> ST s (C.HashTable s NodeId w) -> ST s (Maybe (w, Seq NodeId))
     loop ns sdpt
         | length ns == 0 = return Nothing
         | i == ti = return $ Just ( di, psi )
-        | otherwise
-            = case adjCont i g $ \( j, _ ) e -> ( j, di + len e, psi |> j ) of
-                Just tdj -> do
+        | otherwise = 
+            case adjMap (\n' e -> let j = unwrap n' in ( j, di + len e, psi |> j )) i g of
+                Just (tdj :: Seq (NodeId, w, Seq NodeId)) -> do
+                -- Just tdj -> do
                     rns <- newSTRef $ drop 1 ns
                     dpt <- sdpt
                     forM_ tdj $ \( j, dj, psj ) -> H.mutateST dpt j $ \mv -> do

@@ -16,18 +16,17 @@ import Control.Monad.Trans.Maybe (runMaybeT)
 import System.Random.SFMT (Gen, MonadGen, uniformR, initializeFromSeed)
 import Control.Monad.ST (runST)
 
-propagate :: forall n' g t e' a m s.
-  ( Unwrap NodeId n', EdgeAccessor g t n' e', PrimMonad m, Pointed s, Foldable s, Monoid (s NodeId) ) =>
-  (e' -> Double)
-   -> g
-   -> (s NodeId -> s NodeId -> a -> a)
-   -> a
-   -> MonadGen m
-   -> StateT (s NodeId, s NodeId) m a
+propagate :: forall d n' g e' a m s. (Pairing d, Unwrap NodeId n', Graph g n' e' d, PrimMonad m, Pointed s, Foldable s, Monoid (s NodeId))
+  => (e' -> Double)
+  -> g
+  -> (s NodeId -> s NodeId -> a -> a)
+  -> a
+  -> MonadGen m
+  -> StateT (s NodeId, s NodeId) m a
 propagate pe g f a gen = do
   (cas, tas) <- get -- current actives, total actives
   nas <- foldM (\nas i -> do
-    ms <- runMaybeT $ adjFoldM i g (\s n e -> lift $ do
+    ms <- runMaybeT $ adjFoldlM (\s n e -> lift $ do
       let j = unwrap n
       if elem j tas || elem j nas || elem j s then return s
       else do
@@ -35,7 +34,7 @@ propagate pe g f a gen = do
         return $
           if p <= pe e then s <> point j
           else s
-      ) mempty
+      ) mempty i g
     return $ case ms of
       Just s -> nas <> s
       Nothing -> nas
@@ -45,16 +44,15 @@ propagate pe g f a gen = do
   return $ f nas tas' a
 
 
-propagateUntil :: forall n' g t e a m s.
-  ( Unwrap NodeId n', EdgeAccessor g t n' e, Pointed s, Foldable s, Monoid (s NodeId) ) =>
-  (e -> Double)
-   -> g
-   -> (s NodeId -> s NodeId -> a -> a)
-   -> (a -> Bool)
-   -> s NodeId
-   -> a
-   -> Int
-   -> (a, (s NodeId, s NodeId))
+propagateUntil :: forall d n' g e' a m s. (Pairing d, Unwrap NodeId n', Graph g n' e' d, Pointed s, Foldable s, Monoid (s NodeId))
+  => (e' -> Double)
+  -> g
+  -> (s NodeId -> s NodeId -> a -> a)
+  -> (a -> Bool)
+  -> s NodeId
+  -> a
+  -> Int
+  -> (a, (s NodeId, s NodeId))
 propagateUntil pe g f p ias a seed = runST $ do
   gen <- initializeFromSeed seed
   runStateT (loop gen $ f ias ias a) (ias, ias)

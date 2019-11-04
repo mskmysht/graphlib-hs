@@ -1,28 +1,38 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE DataKinds #-}
 
 module GT.Algebra.Matrix where
 
 import Numeric.LinearAlgebra.Data as LA
 import GT.Graph.Class
-import Data.Foldable as F (toList)
-import Data.Witherable (Filterable, mapMaybe)
+import Data.List (elemIndex)
+-- import Data.Foldable as F (toList)
 import Data.Tuple (swap)
+import Data.Witherable (Witherable, mapMaybe)
 
-adjacencyMatrix :: forall n' e' g t d. (Direction g d, Filterable t, Eq n', Unwrap (Pair n') e', Graph (g d) t n' e') => g d -> Matrix R
+adjacencyMatrix :: forall (d :: IsDirect) n' e' g. (Direction g d, Eq n', Unwrap (Pair n') e', Graph (g d) n' e' d) => g d -> Matrix R
 adjacencyMatrix g = LA.accum (konst 0 (n, n)) (+) as' where
-  n = nodeSize g
+  n = nodeCount g
   as' = if isDirect g then as else as ++ fmap (\(p, a) -> (swap p, a)) as
-  as = F.toList $ mapMaybe (\e -> do
+  es' :: [e']
+  es' = edges g
+  as = mapMaybe (\e -> do
       let (n, m) = unwrap e
-      i <- findNodeIndex n g
-      j <- findNodeIndex m g
+      let ns = nodes g
+      i <- elemIndex n ns
+      j <- elemIndex m ns
       return ((i, j), 1)
-    ) $ edges g
+    ) es'
 
-degreeMatrix :: forall n' e' g t . (Filterable t, Unwrap NodeId n', Graph g t n' e') => g -> Matrix R
-degreeMatrix g = diagl $ F.toList $ mapMaybe (\n -> fromIntegral <$> degree (unwrap n) g ) $ nodes g
-
-laplacian :: forall n' e' g t d. (Direction g d, Filterable t, Eq n', Unwrap NodeId n', Unwrap (Pair n') e', Graph (g d) t n' e') => g d -> Matrix R
+degreeMatrix :: forall (d :: IsDirect) n' e' g . (Unwrap NodeId n', Graph (g d) n' e' d) => g d -> Matrix R
+degreeMatrix g = diagl $ mapMaybe (\n -> fromIntegral <$> degree (unwrap n) g ) ns' where
+  ns' :: [n']
+  ns' = nodes g
+ 
+-- Direction g d, 
+laplacian :: forall (d :: IsDirect) n' e' g. (Pairing d, Direction g d, Eq n', Unwrap NodeId n', Unwrap (Pair n') e', Graph (g d) n' e' d) => g d -> Matrix R
 laplacian g = degreeMatrix g - adjacencyMatrix g

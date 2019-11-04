@@ -28,12 +28,14 @@ dependencies:
 - hxt
 - mtl
 - transformers
-- witherable
+- witherable >= 0.3.4
 - hmatrix
 - criterion
 - sfmt-mod
 - primitive
 - pointed
+- lens
+- extra
 
 library:
   source-dirs: src
