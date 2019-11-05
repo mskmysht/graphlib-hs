@@ -14,7 +14,20 @@
 
 
 module GT.Graph.Internal
-  ( BasicGr
+  ( Gr
+  , DiGr
+  , UndiGr
+  , VGr
+  , DiVGr
+  , UndiVGr
+  , NVGr
+  , DiNVGr
+  , UndiNVGr
+  , EVGr
+  , DiEVGr
+  , UndiEVGr
+  {- deprecated -}
+  , BasicGr
   , MapGr
   , DiBasicGr
   , UndiBasicGr
@@ -61,7 +74,7 @@ data SGr nc ec n e (d :: IsDirect) = SGr
    }
 -}
 
-data Gr nc n n' ec e e' (d :: IsDirect) = G
+data G nc n n' ec e e' (d :: IsDirect) = G
    { nid :: !Int -- next node id
    , nc :: !Int
    , ec :: !Int
@@ -69,22 +82,42 @@ data Gr nc n n' ec e e' (d :: IsDirect) = G
    , es :: !(ec e)
    }
 
-type MapGr n e = Gr (M.Map NodeId) n (NWith n) (HM.HashMap EdgeId) e (EWith e)
+type VGr n e = G (M.Map NodeId) n (NWith n) (HM.HashMap EdgeId) e (EWith e)
+type DiVGr n e = VGr n e 'Directed
+type UndiVGr n e = VGr n e 'Undirected
+
+type NVGr n = G (M.Map NodeId) n (NWith n) S.Set EdgeId EdgeId
+type DiNVGr n = NVGr n 'Directed
+type UndiNVGr n = NVGr n 'Undirected
+
+type EVGr e = G S.Set NodeId NodeId (HM.HashMap EdgeId) e (EWith e)
+type DiEVGr e = EVGr e 'Directed
+type UndiEVGr e = EVGr e 'Undirected
+
+type Gr = G S.Set NodeId NodeId S.Set EdgeId EdgeId
+type DiGr = Gr 'Directed
+type UndiGr = Gr 'Undirected
+
+{- backword compatibiilty -}
+type MapGr n e = VGr n e
 type DiMapGr n e = MapGr n e 'Directed
 type UndiMapGr n e = MapGr n e 'Undirected
-
-type BasicGr = Gr S.Set NodeId NodeId S.Set EdgeId EdgeId
+type BasicGr = Gr
 type DiBasicGr = BasicGr 'Directed
 type UndiBasicGr = BasicGr 'Undirected
 
 
-instance {-# OVERLAPS #-} (Wrap EdgeId e e', SemiFoldable EdgeId ec e, Show e, Show e') => Show (Gr nc NodeId n' ec e e' d) where
+
+instance {-# OVERLAPS #-} (Wrap EdgeId e e', SemiFoldable EdgeId ec e, Show e, Show e') => Show (G nc NodeId n' ec e e' d) where
   show g = show $ sfoldr @EdgeId (\p e a -> (wrap p e :: e') : a) [] $ es g
 
-instance (Wrap EdgeId e e', SemiIndexable NodeId nc n, SemiFoldable EdgeId ec e, Show n, Show e, Show e') => Show (Gr nc n n' ec e e' d) where
+instance (Wrap EdgeId e e', SemiIndexable NodeId nc n, SemiFoldable EdgeId ec e, Show n, Show e, Show e') => Show (G nc n n' ec e e' d) where
   show g = show $ sfoldr @EdgeId (\p@(i, j) e a -> (wrap p e :: e', sindex (ns g) i, sindex (ns g) j) : a) [] $ es g
 
-_adjConbinator :: f -> NodeId -> ns -> es -> (NodeId -> ns -> Bool) -> (NodeId -> n') -> (NodeId -> es -> es) -> ((EdgeId -> n') -> f -> es -> a) -> Maybe a
+_adjConbinator :: 
+  f -> NodeId -> ns -> es
+  -> (NodeId -> ns -> Bool) -> (NodeId -> n')
+  -> (NodeId -> es -> es) -> ((EdgeId -> n') -> f -> es -> a) -> Maybe a
 _adjConbinator f i ns es p gn esf conv = do
   guard $ p i ns -- (\j _ -> i == j)
   return $ conv (gn . opposite i) f (esf i es)
@@ -155,7 +188,7 @@ type SemiFFI i t v = (SemiFoldable i t v, SemiFilterable i t v, SemiIndexable i 
 --   isDirect g = False
 
 
-instance (Pairing d, Wrap NodeId n n', SemiFFI NodeId nc n, Wrap EdgeId e e', SemiFFI EdgeId ec e) => Graph (Gr nc n n' ec e e' d) n' e' d where
+instance (Pairing d, Wrap NodeId n n', SemiFFI NodeId nc n, Wrap EdgeId e e', SemiFFI EdgeId ec e) => Graph (G nc n n' ec e e' d) n' e' d where
   nodeCount = nc
   edgeCount = ec
 
@@ -234,7 +267,8 @@ _eassoc prx f es = (length es', es') where
   es' = wfoldr @EdgeId (\(i', j') e s -> if i' == j' then s else f (pairing prx i' j') e s) mempty es
 
 
-instance (Pairing d, Wrap NodeId n n', Wrap EdgeId e e', NodeBuilderBase nc n, EdgeBuilderBase d ec e, SemiFoldable EdgeId ec e) => Builder (Gr nc n n' ec e e' d) n e where
+instance (Pairing d, Wrap NodeId n n', Wrap EdgeId e e', NodeBuilderBase nc n, EdgeBuilderBase d ec e, SemiFoldable EdgeId ec e)
+  => Builder (G nc n n' ec e e' d) n e where
   assoc ns es = G (h' + 1) nc ec ns'' es' where
     (ec, es') = _eassoc' @d Proxy es
     (h', nc, ns'') = _nassoc' ns es'
