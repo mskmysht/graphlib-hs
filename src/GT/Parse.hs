@@ -19,8 +19,8 @@ import qualified Data.Map.Strict as M
 import Data.Tree.NTree.TypeDefs 
 import Data.Proxy (Proxy(..))
 
-parseGraphml :: (Pairing d, Wrap NodeId n n', Wrap EdgeId e e', Graph g n' e' d, Builder g n e)
-  => (Int -> M.Map String String -> n)
+parseGraphml :: (Graph g n n' e e' d, Builder g n e)
+  => (NodeId -> M.Map String String -> n)
   -> (NodeId -> NodeId -> Maybe Int -> M.Map String String -> e)
   -> String -- the content of a file
   -> Either String g
@@ -29,30 +29,31 @@ parseGraphml nb eb cnt = do
     gc <- findTagE "graph" $ getChildren gmc
     makeGraph nb eb gc
 
-makeGraph :: forall d g n n' e e' . (Wrap NodeId n n', Wrap EdgeId e e', Pairing d, Graph g n' e' d, Builder g n e)
-  => (Int -> M.Map String String -> n)
+makeGraph :: forall g n n' e e' d . (Graph g n n' e e' d, Builder g n e)
+  => (NodeId -> M.Map String String -> n)
   -> (NodeId -> NodeId -> Maybe Int -> M.Map String String -> e)
   -> XmlTree
   -> Either String g
-makeGraph nb eb gc = do
-  let ns = filterTags "node" $ getChildren gc
-  let es = filterTags "edge" $ getChildren gc
-  ns' <- traverse (fromNodeTag @n' nb) ns
-  es' <- traverse (fromEdgeTag @e' eb) es
-  return $ assoc ns' es'
+makeGraph nb eb gc =
+  assoc 
+    <$> traverse (fmap (\(i, m) -> wrap i (nb i m) :: n') . fromNodeTag) ns
+    <*> traverse (fmap (\(s, t, mi, m) -> wrap (s,t) (eb s t mi m) :: e') . fromEdgeTag) es
+  where
+    ns = filterTags "node" $ getChildren gc
+    es = filterTags "edge" $ getChildren gc
 
-fromNodeTag :: forall n' n . Wrap NodeId n n' => (NodeId -> M.Map String String -> n) -> XmlTree -> Either String n'
-fromNodeTag f (NTree n at) = maybeToEither "failed in converting node tags" $ do  
+fromNodeTag :: XmlTree -> Either String (NodeId, M.Map String String)
+fromNodeTag (NTree n at) = maybeToEither "failed in converting node tags"  $ do  
   i <- getAttr "id" readMaybe n
   m <- datasToMap $ filterTags "data" at
-  return $ wrap i (f i m)
+  return (i, m)
 
-fromEdgeTag :: forall e' e . Wrap EdgeId e e' => (NodeId -> NodeId -> Maybe Int -> M.Map String String -> e) -> XmlTree -> Either String e'
-fromEdgeTag f (NTree n at) = maybeToEither "failed in converting edge tags" $ do
+fromEdgeTag :: XmlTree -> Either String (NodeId, NodeId, Maybe Int, M.Map String String)
+fromEdgeTag (NTree n at) = maybeToEither "failed in converting edge tags" $ do
   s <- getAttr "source" readMaybe n
   t <- getAttr "target" readMaybe n
   m <- datasToMap $ filterTags "data" at
-  return $ wrap (s, t) (f s t (getAttr "id" readMaybe n) m)
+  return (s, t, getAttr "id" readMaybe n, m)
 
 getAttr :: String -> (String -> Maybe a) -> XNode -> Maybe a
 getAttr name f (XTag _ attrs) = do

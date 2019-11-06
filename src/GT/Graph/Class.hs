@@ -28,74 +28,51 @@ type With i v = (i, v)
 type NWith n = With NodeId n
 type EWith e = With EdgeId e
 
--- deprecated
--- type PairWith n' e = (n', n', e)
 
-data IsDirect = Directed | Undirected
+data Direction = Directed | Undirected deriving Show
 
-class Pairing (d :: IsDirect) where
-  pairing :: Proxy d -> NodeId -> NodeId -> EdgeId
-  isSource :: Proxy d -> NodeId -> EdgeId -> Bool
-  isSink :: Proxy d -> NodeId -> EdgeId -> Bool
+class Directing (d :: Direction) where
+  ppair :: Proxy d -> NodeId -> NodeId -> EdgeId
+  pisSource :: Proxy d -> NodeId -> EdgeId -> Bool
+  pisSink :: Proxy d -> NodeId -> EdgeId -> Bool
+  pdirection :: Proxy d -> Direction
 
-instance Pairing 'Directed where
-  pairing _ source sink = (source, sink)
-  {-# INLINE pairing #-}
-  isSource _ i (source, _) = i == source
-  {-# INLINE isSource #-}
-  isSink _ i (_, sink) = i == sink
-  {-# INLINE isSink #-}
+instance Directing 'Directed where
+  ppair _ source sink = (source, sink)
+  {-# INLINE ppair #-}
+  pisSource _ i (source, _) = i == source
+  {-# INLINE pisSource #-}
+  pisSink _ i (_, sink) = i == sink
+  {-# INLINE pisSink #-}
+  pdirection _ = Directed
+  {-# INLINE pdirection #-}
 
-instance Pairing 'Undirected where
-  pairing _ i j
+instance Directing 'Undirected where
+  ppair _ i j
     | i < j     = (i, j)
     | otherwise = (j, i)
-  {-# INLINE pairing #-}
-  isSource _ i (i', j') = i == i' || i == j'
-  {-# INLINE isSource #-}
-  isSink _ i (i', j') = i == i' || i == j'
-  {-# INLINE isSink #-}
+  {-# INLINE ppair #-}
+  pisSource _ i (i', j') = i == i' || i == j'
+  {-# INLINE pisSource #-}
+  pisSink _ i (i', j') = i == i' || i == j'
+  {-# INLINE pisSink #-}
+  pdirection _ = Undirected
+  {-# INLINE pdirection #-}
 
--- pattern (@@) :: n -> n -> Pair n
--- pattern (@@) n m <- (n, m)
--- infix @@ 5
--- pattern (:.-) :: n -> n -> Pair n
--- pattern (:.-) i j = (i, j)
 
--- need to change a return type to Maybe NodeId
-opposite :: NodeId -> EdgeId -> NodeId
+opposite :: NodeId -> EdgeId -> Maybe NodeId
+opposite i (i', j')
+  | i /= i' && i /= j' = Nothing
+  | i == i'            = Just j'
+  | otherwise          = Just i'
 {-# INLINE opposite #-}
-opposite i (i', j') = if i == i' then j' else i'
 
--- newtype C (d :: IsDirect) = C { decouple :: Pair NodeId }
-
--- class Couple (d :: IsDirect) where
---   couple :: NodeId -> NodeId -> C d
---   isSource :: NodeId -> C d -> Bool
---   isSink :: NodeId -> C d -> Bool
-
--- opposite :: NodeId -> C d -> NodeId
--- {-# INLINE opposite #-}
--- opposite i (C (i', j')) = if i == i' then j' else i'
-
--- instance Couple 'Directed where
---   couple a b = C (a, b)
---   {-# INLINE couple #-}
---   isSource i (C (i', _)) = i == i'
---   {-# INLINE isSource #-}
---   isSink i (C (_, j')) = i == j'
---   {-# INLINE isSink #-}
-
--- instance Couple 'Undirected where
---   couple a b
---     | a < b     = C (a, b)
---     | otherwise = C (b, a)
---   {-# INLINE couple #-}
---   isSource i (C (i', j')) = i == i' || i == j'
---   {-# INLINE isSource #-}
---   isSink i (C (i', j')) = i == i' || i == j'
---   {-# INLINE isSink #-}
-
+opposite' :: NodeId -> EdgeId -> NodeId
+opposite' i p@(i', j')
+  | i == i' = j'
+  | i == j' = i'
+  | otherwise = error $ "Edge " ++ show p ++ "does not contain node " ++ show i ++ "."
+{-# INLINE opposite' #-}
 
 class Unwrap i w => Wrap i v w where
   wrap :: i -> v -> w
@@ -124,57 +101,43 @@ instance {-# OVERLAPS #-} (a ~ b) => Unwrap a b where
   unwrap = id
   {-# INLINE unwrap #-}
 
--- deprecated
--- instance Wrap (Pair n') e (PairWith n' e) where
---   wrap (n, m) e = (n, m, e)
---   {-# INLINE wrap #-}
-
--- deprecated
--- instance Unwrap (Pair n') (PairWith n' e) where
---   unwrap (n, m, e) = (n, m)
---   {-# INLINE unwrap #-}
-
--- instance Unwrap i n' => Unwrap (Pair i) (Pair n') where
---   unwrap (n, m) = (unwrap n, unwrap m)
---   {-# INLINE unwrap #-}
-
-
-class Direction g (d :: IsDirect) where
-  isDirect :: g d -> Bool
-
-
-class Graph g n' e' d | g -> n' e' d where
+class (Directing d, Wrap NodeId n n', Unwrap NodeId n', Wrap EdgeId e e', Unwrap EdgeId e') => Graph g n n' e e' d | g -> n n' e e' d where
+  pair :: g -> NodeId -> NodeId -> EdgeId
+  isSource :: g -> NodeId -> EdgeId -> Bool
+  isSink :: g -> NodeId -> EdgeId -> Bool
+  direction :: g -> Direction
   nodeCount :: g -> Int
   edgeCount :: g -> Int
   removeEdge :: NodeId -> NodeId -> g -> g
   getNode :: NodeId -> g -> n'
+  getNode i g = wrap i (getNodeValue i g)
+  {-# INLINE getNode #-}
+  getNodeValue :: NodeId -> g -> n
   getEdge :: EdgeId -> g -> e'
+  getEdge p g = wrap p (getEdgeValue p g)
+  {-# INLINE getEdge #-}
+  getEdgeValue :: EdgeId -> g -> e
   nodes :: (Cons (t n') (t n') n' n', Monoid (t n')) => g -> t n'
   nodes = nodeMap id
+  {-# INLINE nodes #-}
   edges :: (Cons (t e') (t e') e' e', Monoid (t e')) => g -> t e'
   edges = edgeMap id
+  {-# INLINE edges #-}
   nodeMap    :: (Cons (t r) (t r) r r, Monoid (t r)) => (n' -> r) -> g -> t r
   edgeMap    :: (Cons (t r) (t r) r r, Monoid (t r)) => (e' -> r) -> g -> t r
   adjMap     :: (Cons (t r) (t r) r r, Monoid (t r)) => (n' -> e' -> r) -> NodeId -> g -> Maybe (t r)
   adjNodeMap :: (Cons (t r) (t r) r r, Monoid (t r)) => (n' -> r) -> NodeId -> g -> Maybe (t r)
   adjNodeMap f = adjMap (\n' e' -> f n')
+  {-# INLINE adjNodeMap #-}
   adjFoldl     :: (r -> n' -> e' -> r) -> r -> NodeId -> g -> Maybe r
   adjNodeFoldl :: (r -> n' -> r) -> r -> NodeId -> g -> Maybe r
   adjNodeFoldl f = adjFoldl (\r n' _ -> f r n')
+  {-# INLINE adjNodeFoldl #-}
   adjFoldlM    :: Monad m => (r -> n' -> e' -> m r) -> r -> NodeId -> g -> MaybeT m r
   adjForM_   :: Monad m => NodeId -> g -> (n' -> e' -> m r) -> MaybeT m ()
   degree :: NodeId -> g -> Maybe Int
   degree = adjNodeFoldl (\a _ -> a + 1) 0
-
-
-
-class Foldable f => SemiFoldable i f v where
-  selem :: i -> f v -> Bool
-  sfoldl :: (r -> i -> v -> r) -> r -> f v -> r
-  sfoldr :: (i -> v -> r -> r) -> r -> f v -> r
-  sfoldlM :: Monad m => (r -> i -> v -> m r) -> r -> f v -> m r
-  sforM_ :: Monad m => f v -> (i -> v -> m r) -> m ()
-  convert :: (Monoid (t r), Cons (t r) (t r) r r) => (i -> v -> r) -> f v -> t r
+  {-# INLINE degree #-}
 
 
 class Builder g n e | g -> n e where

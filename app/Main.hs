@@ -3,7 +3,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeApplications #-}
-{-# LANGUAGE QuantifiedConstraints #-}
+{-# LANGUAGE DataKinds #-}
 
 module Main where
 
@@ -56,12 +56,12 @@ data VEdge = VEdge
   , edgeValues :: M.Map String Double
   } deriving Show
 
-readML :: FilePath -> ExceptT String IO (UndiMapGr VNode VEdge)
+readML :: Directing d => FilePath -> ExceptT String IO (VGr VNode VEdge d)
 readML fp = ExceptT $ do
   f <- readFile fp
   return $ parseGraphml (\i m -> VNode i (mapMaybe readMaybe m)) (\s t i m -> VEdge i s t (mapMaybe readMaybe m)) f
 
-propexp :: forall d g n n' e. (Pairing d, Unwrap NodeId n', Graph g n' (EWith e) d) => Int -> g -> IO ()
+propexp :: (Graph g n n' e (EWith e) d) => Int -> g -> IO ()
 propexp seed g = do
   let sd = catMaybes @Q.Seq @Double (nodeMap (\n' -> let i = unwrap n' in adjNodeFoldl (\d _ -> d + 1) 0 i g) g)
   let rad = fromIntegral (nodeCount g) / sum sd
@@ -88,10 +88,13 @@ readexp g property = do
 main :: IO ()
 main = do
   ssd:fp:_ <- getArgs
-  eg <- runExceptT $ readML fp
+  eg <- runExceptT $ readML @'Directed fp
   case eg of
     Left msg -> print msg
     Right g -> do
       print (nodeMap fst g :: [NodeId])
       print (edgeMap fst g :: [EdgeId])
-      propexp (read ssd) g
+      -- propexp (read ssd) g
+      print $ direction g
+      print $ isSource g 0 (0, 1)
+      print $ isSink g 0 (0, 1)

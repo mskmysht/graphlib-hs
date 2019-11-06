@@ -1,20 +1,21 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE MultiWayIf #-}
 
 module GT.Algorithm.ShortestPath where
 
-import Prelude hiding ( drop, length )
-import GT.Graph
-import qualified Data.HashTable.Class as H
-import qualified Data.HashTable.ST.Cuckoo as C
-import Control.Monad.ST ( ST, runST )
+import Control.Monad (forM_)
+import Control.Monad.ST (ST, runST)
+import Data.HashTable.Class as H (new, insert, mutateST)
+import Data.HashTable.ST.Cuckoo as C (HashTable)
 import Data.Sequence
 import Data.STRef
-import Control.Monad ( forM_ )
+import GT.Graph
+import Prelude hiding (drop, length)
 
 
-dijkstra :: forall d w g n' e' . (Unwrap NodeId n', Pairing d, Ord w, Num w, Graph g n' e' d) => (e' -> w) -> NodeId -> NodeId -> g -> Maybe (w, Seq NodeId)
+dijkstra :: forall d w g n n' e e' . (Ord w, Num w, Graph g n n' e e' d) => (e' -> w) -> NodeId -> NodeId -> g -> Maybe (w, Seq NodeId)
 dijkstra len si ti g = runST $ loop ns0 sdpt0
   where
     ns0 = singleton ( 0, si, singleton si )
@@ -25,34 +26,35 @@ dijkstra len si ti g = runST $ loop ns0 sdpt0
 
     loop :: forall s. Seq (w, NodeId, Seq NodeId) -> ST s (C.HashTable s NodeId w) -> ST s (Maybe (w, Seq NodeId))
     loop ns sdpt
-        | length ns == 0 = return Nothing
-        | i == ti = return $ Just ( di, psi )
-        | otherwise = 
-            case adjMap (\n' e -> let j = unwrap n' in ( j, di + len e, psi |> j )) i g of
-                Just (tdj :: Seq (NodeId, w, Seq NodeId)) -> do
-                -- Just tdj -> do
-                    rns <- newSTRef $ drop 1 ns
-                    dpt <- sdpt
-                    forM_ tdj $ \( j, dj, psj ) -> H.mutateST dpt j $ \mv -> do
-                        let ( mdj, f ) = maybe ( Just dj, ins dj j psj )
-                                (\dj' -> if dj' > dj
-                                 then ( Just dj, insUpd dj j psj )
-                                 else ( mv, id )) mv
-                        modifySTRef' rns f
-                        return ( mdj, () )
-                    ns' <- readSTRef rns
-                    loop ns' $ return dpt
-                Nothing -> loop (drop 1 ns) sdpt
+      | length ns == 0 = return Nothing
+      | i == ti = return $ Just ( di, psi )
+      | otherwise = 
+        case adjMap (\n' e -> let j = unwrap n' in ( j, di + len e, psi |> j )) i g of
+          Just (tdj :: Seq (NodeId, w, Seq NodeId)) -> do
+            rns <- newSTRef $ drop 1 ns
+            dpt <- sdpt
+            forM_ tdj $ \(j, dj, psj) -> H.mutateST dpt j $ \mv -> do
+              let
+                (mdj, f) = maybe (Just dj, ins dj j psj)
+                  (\dj' -> if
+                    | dj' > dj  -> (Just dj, insUpd dj j psj)
+                    | otherwise -> (mv, id)
+                  ) mv
+              modifySTRef' rns f
+              return (mdj, ())
+            ns' <- readSTRef rns
+            loop ns' $ return dpt
+          Nothing -> loop (drop 1 ns) sdpt
       where
         ( di, i, psi ) = index ns 0
 
-    insUpd :: w -> NodeId -> Seq NodeId -> Seq ( w, NodeId, Seq NodeId ) -> Seq ( w, NodeId, Seq NodeId )
+    insUpd :: w -> NodeId -> Seq NodeId -> Seq (w, NodeId, Seq NodeId) -> Seq (w, NodeId, Seq NodeId)
     insUpd d i ps ns = (l |> ( d, i, ps )) >< m >< drop 1 r
       where
         ( l, mr ) = breakl (\( d', _, _ ) -> d' >= d) ns
         ( m, r ) = breakl (\( _, i', _ ) -> i' == i) mr
 
-    ins :: w -> NodeId -> Seq NodeId -> Seq ( w, NodeId, Seq NodeId ) -> Seq ( w, NodeId, Seq NodeId )
+    ins :: w -> NodeId -> Seq NodeId -> Seq (w, NodeId, Seq NodeId) -> Seq (w, NodeId, Seq NodeId)
     ins d i ps ns = (l |> ( d, i, ps )) >< r
       where
         ( l, r ) = breakl (\( d', _, _ ) -> d' >= d) ns

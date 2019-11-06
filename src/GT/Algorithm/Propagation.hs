@@ -16,7 +16,7 @@ import Control.Monad.Trans.Maybe (runMaybeT)
 import System.Random.SFMT (Gen, MonadGen, uniformR, initializeFromSeed)
 import Control.Monad.ST (runST)
 
-propagate :: forall d n' g e' a m s. (Pairing d, Unwrap NodeId n', Graph g n' e' d, PrimMonad m, Pointed s, Foldable s, Monoid (s NodeId))
+propagate :: forall d n n' g e e' a m s. (Graph g n n' e e' d, PrimMonad m, Pointed s, Foldable s, Monoid (s NodeId))
   => (e' -> Double)
   -> g
   -> (s NodeId -> s NodeId -> a -> a)
@@ -44,7 +44,7 @@ propagate pe g f a gen = do
   return $ f nas tas' a
 
 
-propagateUntil :: forall d n' g e' a m s. (Pairing d, Unwrap NodeId n', Graph g n' e' d, Pointed s, Foldable s, Monoid (s NodeId))
+propagateUntil :: forall d n n' g e e' a m s. (Graph g n n' e e' d, Pointed s, Foldable s, Monoid (s NodeId))
   => (e' -> Double)
   -> g
   -> (s NodeId -> s NodeId -> a -> a)

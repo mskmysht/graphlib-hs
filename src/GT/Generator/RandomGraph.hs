@@ -19,7 +19,7 @@ import Data.Maybe (fromJust)
 import Control.Monad.Except (ExceptT(..))
 import Control.Monad.Trans (lift)
 
-barabasiAlbert :: forall d m n' e' g n e . (Pairing d, PrimMonad m, Wrap NodeId n n', Wrap EdgeId e e', Builder g n e, Graph g n' e' d) =>
+barabasiAlbert :: forall d m n' e' g n e . (PrimMonad m, Builder g n e, Graph g n n' e e' d) =>
   Int -- the number of node
    -> Int -- the number of each degree
    -> Int -- seed value
