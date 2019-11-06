@@ -12,7 +12,7 @@ import Data.Sequence as Q (Seq, elemIndexL)
 import Data.Tuple (swap)
 import Data.Witherable (Witherable, mapMaybe)
 
-adjacencyMatrix :: (Graph (g d) n n' e e' d) => g d -> Matrix R
+adjacencyMatrix :: Graph g n n' e e' d => g -> Matrix R
 adjacencyMatrix g = LA.accum (konst 0 (n, n)) (+) as' where
   n = nodeCount g
   as' = case direction g of
@@ -27,8 +27,8 @@ adjacencyMatrix g = LA.accum (konst 0 (n, n)) (+) as' where
     in ((r, c), 1)
     ) g
 
-degreeMatrix :: (Graph (g d) n n' e e' d) => g d -> Matrix R
+degreeMatrix :: Graph g n n' e e' d => g -> Matrix R
 degreeMatrix g = diagl $ nodeMap (\n' -> fromIntegral (fromJust $ degree (unwrap n') g)) g
  
-laplacianMatrix :: (Graph (g d) n n' e e' d) => g d -> Matrix R
+laplacianMatrix :: Graph g n n' e e' d => g -> Matrix R
 laplacianMatrix g = degreeMatrix g - adjacencyMatrix g
