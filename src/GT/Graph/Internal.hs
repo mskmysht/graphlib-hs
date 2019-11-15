@@ -103,6 +103,15 @@ _adjFCombinator prx ns es g f r i = do
   return $ g (\a p e -> f a (oppositeV' ns i p) (wrap p e)) r (filterWithSource prx es i)
 {-# INLINE _adjFCombinator #-}
 
+_adjIFCombinator :: (SemiFoldable NodeId nc n, SemiIndexable NodeId nc n, SemiFilterable EdgeId ec e, Directing d)
+  => Proxy d -> nc n -> ec e
+  -> ((a -> EdgeId -> e -> b) -> q -> ec e -> r)
+  -> (a -> NodeId -> EdgeId -> b) -> q -> NodeId -> Maybe r
+_adjIFCombinator prx ns es g f r i = do
+  guard $ selem i ns
+  return $ g (\a p e -> f a (opposite' i p) p) r (filterWithSource prx es i)
+{-# INLINE _adjIFCombinator #-}
+
 _adjMCombinator :: (SemiFoldable NodeId nc n, SemiIndexable NodeId nc n, SemiFilterable EdgeId ec e, Directing d, Wrap EdgeId e e', Wrap NodeId n n')
   => Proxy d -> nc n -> ec e
   -> ((EdgeId -> e -> b) -> ec e -> r)
@@ -111,6 +120,15 @@ _adjMCombinator prx ns es g f i = do
   guard $ selem i ns
   return $ g (\p e -> f (oppositeV' ns i p) (wrap p e)) (filterWithSource prx es i)
 {-# INLINE _adjMCombinator #-}
+
+_adjIMCombinator :: (SemiFoldable NodeId nc n, SemiIndexable NodeId nc n, SemiFilterable EdgeId ec e, Directing d)
+  => Proxy d -> nc n -> ec e
+  -> ((EdgeId -> e -> b) -> ec e -> r)
+  -> (NodeId -> EdgeId -> b) -> NodeId -> Maybe r
+_adjIMCombinator prx ns es g f i = do
+  guard $ selem i ns
+  return $ g (\p _ -> f (opposite' i p) p) (filterWithSource prx es i)
+{-# INLINE _adjIMCombinator #-}
 
 
 class Foldable f => SemiFoldable i f v where
@@ -229,17 +247,46 @@ instance (Directing d, Wrap NodeId n n', Unwrap NodeId n', SemiFFI NodeId nc n, 
 
   nodeMap f = convert @NodeId (\i n -> f $ wrap i n) . ns
   {-# INLINE nodeMap #-}
+  nodeIMap f = convert @NodeId (\i _ -> f i) . ns
+  {-# INLINE nodeIMap #-}
   edgeMap f = convert @EdgeId (\p e -> f $ wrap p e) . es
   {-# INLINE edgeMap #-}
+  edgeIMap f = convert @EdgeId (\p _ -> f p) . es
+  {-# INLINE edgeIMap #-}
+
+  nodeFoldl f r = sfoldl @NodeId (\r i n -> f r $ wrap i n) r . ns
+  {-# INLINE nodeFoldl #-}
+  nodeIFoldl f r = sfoldl @NodeId (\r i _ -> f r i) r . ns
+  {-# INLINE nodeIFoldl #-}
+  nodeFoldr f r = sfoldr @NodeId (\i n r -> f (wrap i n) r) r . ns
+  {-# INLINE nodeFoldr #-}
+  nodeIFoldr f r = sfoldr @NodeId (\i n r -> f i r) r . ns
+  {-# INLINE nodeIFoldr #-}
+  edgeFoldl f r = sfoldl @EdgeId (\r p e -> f r $ wrap p e) r . es
+  {-# INLINE edgeFoldl #-}
+  edgeIFoldl f r = sfoldl @EdgeId (\r p _ -> f r p) r . es
+  {-# INLINE edgeIFoldl #-}
+  edgeFoldr f r = sfoldr @EdgeId (\p e r -> f (wrap p e) r) r . es
+  {-# INLINE edgeFoldr #-}
+  edgeIFoldr f r = sfoldr @EdgeId (\p _ r -> f p r) r . es
+  {-# INLINE edgeIFoldr #-}
 
   adjMap f i g = _adjMCombinator (prx g) (ns g) (es g) convert f i
   {-# INLINE adjMap #-}
+  adjIMap f i g = _adjIMCombinator (prx g) (ns g) (es g) convert f i
+  {-# INLINE adjIMap #-}
   adjFoldl f r i g = _adjFCombinator (prx g) (ns g) (es g) sfoldl f r i
   {-# INLINE adjFoldl #-}
+  adjIFoldl f r i g = _adjIFCombinator (prx g) (ns g) (es g) sfoldl f r i
+  {-# INLINE adjIFoldl #-}
   adjFoldlM f r i g = MaybeT $ sequenceA $ _adjFCombinator (prx g) (ns g) (es g) sfoldlM f r i
   {-# INLINE adjFoldlM #-}
+  adjIFoldlM f r i g = MaybeT $ sequenceA $ _adjIFCombinator (prx g) (ns g) (es g) sfoldlM f r i
+  {-# INLINE adjIFoldlM #-}
   adjForM_ i g f = MaybeT $ sequenceA $ _adjMCombinator (prx g) (ns g) (es g) (flip sforM_) f i
   {-# INLINE adjForM_ #-}
+  adjIForM_ i g f = MaybeT $ sequenceA $ _adjIMCombinator (prx g) (ns g) (es g) (flip sforM_) f i
+  {-# INLINE adjIForM_ #-}
 
 
 class (Foldable nc, Monoid (nc n)) => NodeBuilderBase nc n where

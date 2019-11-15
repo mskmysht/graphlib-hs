@@ -123,18 +123,38 @@ class (Directing d, Wrap NodeId n n', Unwrap NodeId n', Wrap EdgeId e e', Unwrap
   edges :: (Cons (t e') (t e') e' e', Monoid (t e')) => g -> t e'
   edges = edgeMap id
   {-# INLINE edges #-}
-  nodeMap    :: (Cons (t r) (t r) r r, Monoid (t r)) => (n' -> r) -> g -> t r
-  edgeMap    :: (Cons (t r) (t r) r r, Monoid (t r)) => (e' -> r) -> g -> t r
-  adjMap     :: (Cons (t r) (t r) r r, Monoid (t r)) => (n' -> e' -> r) -> NodeId -> g -> Maybe (t r)
-  adjNodeMap :: (Cons (t r) (t r) r r, Monoid (t r)) => (n' -> r) -> NodeId -> g -> Maybe (t r)
-  adjNodeMap f = adjMap (\n' e' -> f n')
+  nodeMap  :: (Cons (t r) (t r) r r, Monoid (t r)) => (n' -> r) -> g -> t r
+  nodeIMap :: (Cons (t r) (t r) r r, Monoid (t r)) => (NodeId -> r) -> g -> t r
+  edgeMap  :: (Cons (t r) (t r) r r, Monoid (t r)) => (e' -> r) -> g -> t r
+  edgeIMap :: (Cons (t r) (t r) r r, Monoid (t r)) => (EdgeId -> r) -> g -> t r
+  nodeFoldl  :: (r -> n' -> r) -> r -> g -> r
+  nodeIFoldl :: (r -> NodeId -> r) -> r -> g -> r
+  nodeFoldr  :: (n' -> r -> r) -> r -> g -> r
+  nodeIFoldr :: (NodeId -> r -> r) -> r -> g -> r
+  edgeFoldl  :: (r -> e' -> r) -> r -> g -> r
+  edgeIFoldl :: (r -> EdgeId -> r) -> r -> g -> r
+  edgeFoldr  :: (e' -> r -> r) -> r -> g -> r
+  edgeIFoldr :: (EdgeId -> r -> r) -> r -> g -> r
+  adjMap  :: (Cons (t r) (t r) r r, Monoid (t r)) => (n' -> e' -> r) -> NodeId -> g -> Maybe (t r)
+  adjIMap :: (Cons (t r) (t r) r r, Monoid (t r)) => (NodeId -> EdgeId -> r) -> NodeId -> g -> Maybe (t r)
+  adjNodeMap  :: (Cons (t r) (t r) r r, Monoid (t r)) => (n' -> r) -> NodeId -> g -> Maybe (t r)
+  adjNodeMap f = adjMap (\n' _ -> f n')
   {-# INLINE adjNodeMap #-}
-  adjFoldl     :: (r -> n' -> e' -> r) -> r -> NodeId -> g -> Maybe r
-  adjNodeFoldl :: (r -> n' -> r) -> r -> NodeId -> g -> Maybe r
+  adjNodeIMap :: (Cons (t r) (t r) r r, Monoid (t r)) => (NodeId -> r) -> NodeId -> g -> Maybe (t r)
+  adjNodeIMap f = adjIMap (\i _ -> f i)
+  {-# INLINE adjNodeIMap #-}
+  adjFoldl  :: (r -> n' -> e' -> r) -> r -> NodeId -> g -> Maybe r
+  adjIFoldl :: (r -> NodeId -> EdgeId -> r) -> r -> NodeId -> g -> Maybe r
+  adjNodeFoldl  :: (r -> n' -> r) -> r -> NodeId -> g -> Maybe r
   adjNodeFoldl f = adjFoldl (\r n' _ -> f r n')
   {-# INLINE adjNodeFoldl #-}
-  adjFoldlM    :: Monad m => (r -> n' -> e' -> m r) -> r -> NodeId -> g -> MaybeT m r
-  adjForM_   :: Monad m => NodeId -> g -> (n' -> e' -> m r) -> MaybeT m ()
+  adjNodeIFoldl :: (r -> NodeId -> r) -> r -> NodeId -> g -> Maybe r
+  adjNodeIFoldl f = adjIFoldl (\r i _ -> f r i)
+  {-# INLINE adjNodeIFoldl #-}
+  adjFoldlM  :: Monad m => (r -> n' -> e' -> m r) -> r -> NodeId -> g -> MaybeT m r
+  adjIFoldlM :: Monad m => (r -> NodeId -> EdgeId -> m r) -> r -> NodeId -> g -> MaybeT m r
+  adjForM_  :: Monad m => NodeId -> g -> (n' -> e' -> m r) -> MaybeT m ()
+  adjIForM_ :: Monad m => NodeId -> g -> (NodeId -> EdgeId -> m r) -> MaybeT m ()
   degree :: NodeId -> g -> Maybe Int
   degree = adjNodeFoldl (\a _ -> a + 1) 0
   {-# INLINE degree #-}
