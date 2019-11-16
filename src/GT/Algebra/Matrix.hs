@@ -18,7 +18,7 @@ adjacencyMatrix g = LA.accum (konst 0 (n, n)) (+) as' where
   as' = case direction g of
       Directed -> as
       Undirected -> as ++ fmap (\(rc, a) -> (swap rc, a)) as
-  is = nodeMap unwrap g :: Seq NodeId
+  is = nodeIds g
   as = edgeMap (\e' ->
     let
       (i, j) = unwrap e'
