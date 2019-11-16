@@ -123,18 +123,56 @@ class (Directing d, Wrap NodeId n n', Unwrap NodeId n', Wrap EdgeId e e', Unwrap
   edges :: (Cons (t e') (t e') e' e', Monoid (t e')) => g -> t e'
   edges = edgeMap id
   {-# INLINE edges #-}
+  nodeIVMap  :: (Cons (t r) (t r) r r, Monoid (t r)) => (NodeId -> n -> r) -> g -> t r
   nodeMap  :: (Cons (t r) (t r) r r, Monoid (t r)) => (n' -> r) -> g -> t r
+  nodeMap f = nodeIVMap (\i n -> f $ wrap i n)
+  {-# INLINE nodeMap #-}
   nodeIMap :: (Cons (t r) (t r) r r, Monoid (t r)) => (NodeId -> r) -> g -> t r
+  nodeIMap f = nodeIVMap (\i _ -> f i)
+  {-# INLINE nodeIMap #-}
+  nodeIds :: (Cons (t NodeId) (t NodeId) NodeId NodeId, Monoid (t NodeId)) => g -> t NodeId
+  nodeIds = nodeIVMap const
+  {-# INLINE nodeIds #-}
+  nodeIndices :: (Cons (t (NodeId, Int)) (t (NodeId, Int)) (NodeId, Int) (NodeId, Int), Monoid (t (NodeId, Int))) => g -> t (NodeId, Int)
+  edgeIVMap  :: (Cons (t r) (t r) r r, Monoid (t r)) => (EdgeId -> e -> r) -> g -> t r
   edgeMap  :: (Cons (t r) (t r) r r, Monoid (t r)) => (e' -> r) -> g -> t r
+  edgeMap f = edgeIVMap (\p e -> f $ wrap p e)
+  {-# INLINE edgeMap #-}
   edgeIMap :: (Cons (t r) (t r) r r, Monoid (t r)) => (EdgeId -> r) -> g -> t r
+  edgeIMap f = edgeIVMap (\p _ -> f p)
+  {-# INLINE edgeIMap #-}
+  edgeIds  :: (Cons (t EdgeId) (t EdgeId) EdgeId EdgeId, Monoid (t EdgeId)) => g -> t EdgeId
+  edgeIds = edgeIVMap const
+  {-# INLINE edgeIds #-}
+  edgeIndices  :: (Cons (t (EdgeId, Int)) (t (EdgeId, Int)) (EdgeId, Int) (EdgeId, Int), Monoid (t (EdgeId, Int))) => g -> t (EdgeId, Int)
+  nodeIVFoldl  :: (r -> NodeId -> n -> r) -> r -> g -> r
   nodeFoldl  :: (r -> n' -> r) -> r -> g -> r
+  nodeFoldl f = nodeIVFoldl (\r i n -> f r $ wrap i n)
+  {-# INLINE nodeFoldl #-}
   nodeIFoldl :: (r -> NodeId -> r) -> r -> g -> r
+  nodeIFoldl f = nodeIVFoldl (\r i _ -> f r i)
+  {-# INLINE nodeIFoldl #-}
+  nodeIVFoldr  :: (NodeId -> n -> r -> r) -> r -> g -> r
   nodeFoldr  :: (n' -> r -> r) -> r -> g -> r
+  nodeFoldr f = nodeIVFoldr (\i n r -> f (wrap i n) r)
+  {-# INLINE nodeFoldr #-}
   nodeIFoldr :: (NodeId -> r -> r) -> r -> g -> r
+  nodeIFoldr f = nodeIVFoldr (\i _ r -> f i r)
+  {-# INLINE nodeIFoldr #-}
+  edgeIVFoldl  :: (r -> EdgeId -> e -> r) -> r -> g -> r
   edgeFoldl  :: (r -> e' -> r) -> r -> g -> r
+  edgeFoldl f = edgeIVFoldl (\r p e -> f r $ wrap p e)
+  {-# INLINE edgeFoldl #-}
   edgeIFoldl :: (r -> EdgeId -> r) -> r -> g -> r
+  edgeIFoldl f = edgeIVFoldl (\r p _ -> f r p)
+  {-# INLINE edgeIFoldl #-}
+  edgeIVFoldr  :: (EdgeId -> e -> r -> r) -> r -> g -> r
   edgeFoldr  :: (e' -> r -> r) -> r -> g -> r
+  edgeFoldr f = edgeIVFoldr (\p e r -> f (wrap p e) r)
+  {-# INLINE edgeFoldr #-}
   edgeIFoldr :: (EdgeId -> r -> r) -> r -> g -> r
+  edgeIFoldr f = edgeIVFoldr (\p _ r -> f p r)
+  {-# INLINE edgeIFoldr #-}
   adjMap  :: (Cons (t r) (t r) r r, Monoid (t r)) => (n' -> e' -> r) -> NodeId -> g -> Maybe (t r)
   adjIMap :: (Cons (t r) (t r) r r, Monoid (t r)) => (NodeId -> EdgeId -> r) -> NodeId -> g -> Maybe (t r)
   adjNodeMap  :: (Cons (t r) (t r) r r, Monoid (t r)) => (n' -> r) -> NodeId -> g -> Maybe (t r)

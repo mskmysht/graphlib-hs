@@ -138,6 +138,7 @@ class Foldable f => SemiFoldable i f v where
   sfoldlM :: Monad m => (r -> i -> v -> m r) -> r -> f v -> m r
   sforM_ :: Monad m => f v -> (i -> v -> m r) -> m ()
   convert :: (Monoid (t r), Cons (t r) (t r) r r) => (i -> v -> r) -> f v -> t r
+  iconvert :: (Monoid (t r), Cons (t r) (t r) r r) => (Int -> i -> v -> r) -> f v -> t r
 
 class SemiFilterable i f v where
   sfilter :: (i -> Bool) -> f v -> f v
@@ -155,14 +156,16 @@ instance {-# OVERLAPS #-} (Eq a, Foldable f) => SemiFoldable a f a where
   {-# INLINE selem #-}
   sfoldl f = foldl (\r p -> f r p p)
   {-# INLINE sfoldl #-}
-  convert f = foldr (\a s -> f a a <| s) mempty
-  {-# INLINE convert #-}
   sfoldr f = foldr (\a r -> f a a r)
   {-# INLINE sfoldr #-}
   sfoldlM f = foldlM (\r a -> f r a a)
   {-# INLINE sfoldlM #-}
   sforM_ ts f = forM_ ts (\a -> f a a)
   {-# INLINE sforM_ #-}
+  convert f = foldr (\a s -> f a a <| s) mempty
+  {-# INLINE convert #-}
+  iconvert f ts = fst $ foldr (\a (s, idx) -> (f idx a a <| s, idx + 1)) (mempty, 0) ts
+  {-# INLINE iconvert #-}
 
 
 instance (Eq i, FoldableWithIndex i (f i)) => SemiFoldable i (f i) a where
@@ -170,14 +173,17 @@ instance (Eq i, FoldableWithIndex i (f i)) => SemiFoldable i (f i) a where
   {-# INLINE selem #-}
   sfoldl f = ifoldl (\p r e -> f r p e)
   {-# INLINE sfoldl #-}
-  convert f = ifoldr (\i a s -> f i a <| s) mempty
-  {-# INLINE convert #-}
   sfoldr = ifoldr
   {-# INLINE sfoldr #-}
   sfoldlM f = ifoldlM (\r i v -> f i r v)
   {-# INLINE sfoldlM #-}
   sforM_ = iforM_
   {-# INLINE sforM_ #-}
+  convert f = ifoldr (\i a s -> f i a <| s) mempty
+  {-# INLINE convert #-}
+  iconvert f ts = fst $ ifoldr (\i a (s, idx) -> (f idx i a <| s, idx + 1)) (mempty, 0) ts
+  {-# INLINE iconvert #-}
+
 
 instance {-# OVERLAPS #-} (Eq a, Filterable f) => SemiFilterable a f a where
   sfilter = W.filter
@@ -245,31 +251,23 @@ instance (Directing d, Wrap NodeId n n', Unwrap NodeId n', SemiFFI NodeId nc n, 
   getEdgeValue p g = sindex (es g) p
   {-# INLINE getEdgeValue #-}
 
-  nodeMap f = convert @NodeId (\i n -> f $ wrap i n) . ns
-  {-# INLINE nodeMap #-}
-  nodeIMap f = convert @NodeId (\i _ -> f i) . ns
-  {-# INLINE nodeIMap #-}
-  edgeMap f = convert @EdgeId (\p e -> f $ wrap p e) . es
-  {-# INLINE edgeMap #-}
-  edgeIMap f = convert @EdgeId (\p _ -> f p) . es
-  {-# INLINE edgeIMap #-}
+  nodeIVMap f = convert @NodeId f . ns
+  {-# INLINE nodeIVMap #-}
+  nodeIndices = iconvert @NodeId (\idx i _ -> (i, idx)) . ns
+  {-# INLINE nodeIndices #-}
+  edgeIVMap f = convert @EdgeId f . es
+  {-# INLINE edgeIVMap #-}
+  edgeIndices = iconvert @EdgeId (\idx p _ -> (p, idx)) . es
+  {-# INLINE edgeIndices #-}
 
-  nodeFoldl f r = sfoldl @NodeId (\r i n -> f r $ wrap i n) r . ns
-  {-# INLINE nodeFoldl #-}
-  nodeIFoldl f r = sfoldl @NodeId (\r i _ -> f r i) r . ns
-  {-# INLINE nodeIFoldl #-}
-  nodeFoldr f r = sfoldr @NodeId (\i n r -> f (wrap i n) r) r . ns
-  {-# INLINE nodeFoldr #-}
-  nodeIFoldr f r = sfoldr @NodeId (\i n r -> f i r) r . ns
-  {-# INLINE nodeIFoldr #-}
-  edgeFoldl f r = sfoldl @EdgeId (\r p e -> f r $ wrap p e) r . es
-  {-# INLINE edgeFoldl #-}
-  edgeIFoldl f r = sfoldl @EdgeId (\r p _ -> f r p) r . es
-  {-# INLINE edgeIFoldl #-}
-  edgeFoldr f r = sfoldr @EdgeId (\p e r -> f (wrap p e) r) r . es
-  {-# INLINE edgeFoldr #-}
-  edgeIFoldr f r = sfoldr @EdgeId (\p _ r -> f p r) r . es
-  {-# INLINE edgeIFoldr #-}
+  nodeIVFoldl f r = sfoldl @NodeId f r . ns
+  {-# INLINE nodeIVFoldl #-}
+  nodeIVFoldr f r = sfoldr @NodeId f r . ns
+  {-# INLINE nodeIVFoldr #-}
+  edgeIVFoldl f r = sfoldl @EdgeId f r . es
+  {-# INLINE edgeIVFoldl #-}
+  edgeIVFoldr f r = sfoldr @EdgeId f r . es
+  {-# INLINE edgeIVFoldr #-}
 
   adjMap f i g = _adjMCombinator (prx g) (ns g) (es g) convert f i
   {-# INLINE adjMap #-}
