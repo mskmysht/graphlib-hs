@@ -5,21 +5,27 @@
 module GT.Algorithm.Propagation
   ( independentCascade
   , independentCascadeDyn
+  , discreteDiffusionWithThreshold
+  , discreteDiffusion
   , propagate
   , propagateUntil
   ) where
 
 import Control.Monad (unless)
-import Control.Monad.RWS.Strict (RWST, runRWST, ask, tell, get, put)
+import Control.Monad.RWS.Strict (RWS, runRWS, RWST, runRWST, ask, tell, get, put)
 import Control.Monad.State.Strict (StateT, runStateT, get, put, foldM)
+import Control.Monad.ST (runST)
 import Control.Monad.Trans (lift)
 import Control.Monad.Primitive (PrimMonad)
 import Control.Monad.Trans.Maybe (runMaybeT)
 import Data.Pointed (Pointed(..))
 import Data.Maybe (fromJust)
-import GT.Graph.Class
+import Data.Map.Strict (Map)
+import GT.Graph
+import GT.Algebra.Matrix
+import Numeric.LinearAlgebra.Data as LA
+import Numeric.LinearAlgebra ((#>), norm_1)
 import System.Random.SFMT (Gen, MonadGen, uniformR, initializeFromSeed)
-import Control.Monad.ST (runST)
 
 
 -- | Total active nodes exclude current active nodes, i.e. they are historically active.
@@ -71,6 +77,33 @@ stepIC gen g pe cas tas = do
     ) mempty cas
   let tas' = tas <> as'
   return (tas, as')
+
+
+discreteDiffusionWithThreshold :: (Pointed t, Monoid (t (Vector R)), Graph g n n' e e' d)
+  => g -> Double -> Vector R -> Double -> (Vector R, Vector R, t (Vector R))
+discreteDiffusionWithThreshold g a w epsilon = discreteDiffusion g a w (epsilon, norm_1 w / fromIntegral (size w)) $ uncurry thresholdCondition
+
+discreteDiffusion :: (Pointed t, Monoid (t (Vector R)), Graph g n n' e e' d)
+  => g -- graph
+  -> Double -- alpha (diffusion coefficent)
+  -> Vector R -- initial weight distribusion
+  -> r -- 
+  -> (r -> Vector R -> Bool) -- terminal condition
+  -> (Vector R, Vector R, t (Vector R))
+discreteDiffusion g a w r p = runRWS loop (m, r) w where
+  m = ident (nodeCount g) - laplacianMatrix g * scalar a
+  loop = do
+    (m, r) <- ask
+    w <- get
+    if p r w then 
+      return w
+    else do
+      put $ m #> w
+      tell $ point w
+      loop
+
+thresholdCondition :: Double -> Double -> Vector R -> Bool
+thresholdCondition epsilon wavg = all (\we -> we - wavg <= epsilon) . toList
 
 
 -- | deprecated
