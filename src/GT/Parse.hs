@@ -1,11 +1,11 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 module GT.Parse 
-  (parseGraphml)
-where
+  ( parseGraphml
+  , readMatrixMarket
+  ) where
 
 import GT.Graph
 
@@ -18,6 +18,9 @@ import Data.List
 import qualified Data.Map.Strict as M
 import Data.Tree.NTree.TypeDefs 
 import Data.Proxy (Proxy(..))
+
+import Control.Monad.Except (ExceptT(..), mapExceptT, runExceptT)
+import System.IO (IOMode(..), hIsEOF, hGetLine, withFile, hPutStrLn)
 
 parseGraphml :: (Graph g n n' e e' d, Builder g n e)
   => (NodeId -> M.Map String String -> n)
@@ -97,3 +100,38 @@ filterTags :: String -> XmlTrees -> XmlTrees
 filterTags tn = filter $ \(NTree xn _) -> case xn of
     XTag qn _ -> localPart qn == tn
     _         -> False
+
+
+
+readMatrixMarket :: FilePath -> ExceptT String IO UndiGr
+readMatrixMarket path =
+ (\((s:_):es) -> assoc ([] :: [NodeId]) $ fmap (\(i:j:_) -> (i, j)) es)
+   <$> (ExceptT $ withFile path ReadMode $ \handle -> parse hIsEOF hGetLine handle)
+
+split :: Eq a => a -> [a] -> [[a]]
+split d cs = sps d cs [] []
+  where
+    sps d [] [] rs = rs
+    sps d [] r rs  = rs ++ [r]
+    sps d (c:cs) r rs
+      | c == d    = sps d cs r rs
+      | otherwise = spe d cs (r++[c]) rs
+    spe d [] [] rs = rs
+    spe d [] r rs  = rs ++ [r]
+    spe d (c:cs) r rs
+      | c == d    = sps d cs [] (rs ++ [r])
+      | otherwise = spe d cs (r++[c]) rs
+
+parse :: forall m a. Monad m => (a -> m Bool) -> (a -> m String) -> a -> m (Either String [[Int]])
+parse p f a = sequenceA <$> loop mempty a
+  where
+    loop :: Monad m => [Either String [Int]] -> a -> m [Either String [Int]]
+    loop rs a = do
+      b <- p a
+      if b then return rs
+      else f a >>= \s -> loop (rs <> line s) a
+    line :: String -> [Either String [Int]]
+    line []   = mempty
+    line s@(c:_)
+      | c == '%'  = mempty
+      | otherwise = [traverse readEither $ split ' ' s]
