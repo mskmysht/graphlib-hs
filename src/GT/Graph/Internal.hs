@@ -243,7 +243,7 @@ instance (Directing d, Wrap NodeId n n', Unwrap NodeId n', SemiFFI NodeId nc n, 
 
   removeEdge i j g = g { ec = length es', es = es' }
     where
-      es' = sfilter (\p -> p == pair g i j) (es g)
+      es' = sfilter (\p -> p /= pair g i j) (es g)
   {-# INLINE removeEdge #-}
 
   getNodeValue i g = sindex (ns g) i
