@@ -10,7 +10,6 @@ module Main where
 import GT.Graph
 import GT.Generator.RandomGraph
 import GT.Parse
-import GT.Algorithm.Propagation
 
 import qualified Data.Map.Strict as M
 
@@ -60,20 +59,6 @@ readML :: Directing d => FilePath -> ExceptT String IO (VGr VNode VEdge d)
 readML fp = ExceptT $ do
   f <- readFile fp
   return $ parseGraphml (\i m -> VNode i (mapMaybe readMaybe m)) (\s t i m -> VEdge i s t (mapMaybe readMaybe m)) f
-
-propexp :: (Graph g n n' e (EWith e) d) => Int -> g -> IO ()
-propexp seed g = do
-  let sd = catMaybes @Q.Seq @Double (nodeMap (\n' -> let i = unwrap n' in adjNodeFoldl (\d _ -> d + 1) 0 i g) g)
-  let rad = fromIntegral (nodeCount g) / sum sd
-  let l = truncate $ 0.05 * fromIntegral (nodeCount g) :: Int
-  let ias = [0 .. (l - 1)] -- [0, 1, 2]
-  print (rad, l)
-  let (ss, ts) = propagateUntil (const $ rad * 2) g ( \c t (_, a) -> (length c, length t : a) ) (
-        \case
-          (n, _) -> n == 0
-        ) (fromList ias) (0, []) seed
-  print ss
-  print (ts :: (S.Set NodeId, S.Set NodeId))
 
 readexp :: UndiMapGr VNode VEdge -> String -> IO ()
 readexp g property = do
