@@ -28,7 +28,7 @@ dependencies:
 - hxt
 - mtl
 - transformers
-- witherable >= 0.3.4
+- witherable
 - hmatrix
 - criterion
 - sfmt-mod

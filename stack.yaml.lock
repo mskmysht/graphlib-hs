@@ -5,24 +5,43 @@
 
 packages:
 - completed:
-    size: 2262236
-    url: https://github.com/mskmysht/sfmt-hs/archive/bc6befbe7f765bddf52be1999e8ae5884413eb57.tar.gz
+    size: 2262196
+    url: https://github.com/mskmysht/sfmt-hs/archive/7a54ffb.tar.gz
     cabal-file:
-      size: 1704
-      sha256: 2be9293d6a85de2c69ca322f6645245ea9dfc721b63892d1ab83c09427fcdc35
+      size: 1688
+      sha256: 70ddd65f6f21733fd70a1f25dd38970eb459a9078f4df064459bc0fdf22609e6
     name: sfmt-mod
     version: 0.1.0.0
-    sha256: 6f0b5c9718df04d5095e55db749bc02d577193c50c17f4b9f4bcbbf9f8ee768b
+    sha256: 37adaceb006d3e387a5ef20730e7d6a7a1f98c727c18eb75f9028516b0280167
     pantry-tree:
       size: 6221
-      sha256: 1663d7f716cff98229beeb2dcd47e8bf69af3a6a976a2317260b16b911110d0c
+      sha256: bfb57b903b062d7ce1903b431db197ca79c77595f46c13d7b9f697f75cee440e
   original:
-    size: 2262236
-    url: https://github.com/mskmysht/sfmt-hs/archive/bc6befbe7f765bddf52be1999e8ae5884413eb57.tar.gz
-    sha256: 6f0b5c9718df04d5095e55db749bc02d577193c50c17f4b9f4bcbbf9f8ee768b
+    url: https://github.com/mskmysht/sfmt-hs/archive/7a54ffb.tar.gz
+- completed:
+    hackage: witherable-0.3.5@sha256:6590a15735b50ac14dcc138d4265ff1585d5f3e9d3047d5ebc5abf4cd5f50084,1476
+    pantry-tree:
+      size: 271
+      sha256: b99f21dbac28da031eb7c787fbffbe5e77e0aee42b64b5dda082470e907d5ab5
+  original:
+    hackage: witherable-0.3.5@sha256:6590a15735b50ac14dcc138d4265ff1585d5f3e9d3047d5ebc5abf4cd5f50084,1476
+- completed:
+    hackage: monoidal-containers-0.6.0.1@sha256:7d776942659eb4d70d8b8da5d734396374a6eda8b4622df9e61e26b24e9c8e40,2501
+    pantry-tree:
+      size: 569
+      sha256: c354e916cb3aa9a0728a60f08440dc589a9e6d8275f047dbe9ab73f168247561
+  original:
+    hackage: monoidal-containers-0.6.0.1@sha256:7d776942659eb4d70d8b8da5d734396374a6eda8b4622df9e61e26b24e9c8e40,2501
+- completed:
+    hackage: witherable-class-0@sha256:91f05518f9f4af5b02424f13ee7dcdab5d6618e01346aa2f388a72ff93e2e501,775
+    pantry-tree:
+      size: 277
+      sha256: e99696bf95da593a3892c7b9a28db09ffd139b4b1b313f32cec9d26979aa7ce2
+  original:
+    hackage: witherable-class-0@sha256:91f05518f9f4af5b02424f13ee7dcdab5d6618e01346aa2f388a72ff93e2e501,775
 snapshots:
 - completed:
-    size: 545658
-    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/14/12.yaml
-    sha256: 26b807457213126d26b595439d705dc824dbb7618b0de6b900adc2bf6a059406
-  original: lts-14.12
+    size: 492015
+    url: https://raw.githubusercontent.com/commercialhaskell/stackage-snapshots/master/lts/15/8.yaml
+    sha256: 926bc3d70249dd0ba05277ff00943c0addb35b627cb641752669e7cf771310d0
+  original: lts-15.8
