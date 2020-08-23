@@ -1,0 +1,7 @@
+packages: .
+
+source-repository-package
+  type: git
+  location: https://github.com/mskmysht/sfmt-hs
+  tag: edab648a6bafecb3bd9e20c87f8c1a10fdce304f
+

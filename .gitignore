@@ -1,7 +1,4 @@
-.stack-work/
-graphlib-hs.cabal
 *~
-garbage/
-sfmt-hs/
-*.prof
 .DS_Store
+dist*
+.ghc*

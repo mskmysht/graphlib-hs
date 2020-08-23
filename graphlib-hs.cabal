@@ -1,0 +1,114 @@
+cabal-version: 1.12
+
+-- This file has been generated from package.yaml by hpack version 0.31.2.
+--
+-- see: https://github.com/sol/hpack
+--
+-- hash: 2ea31cb5d465df8b2045f5e3a0c545401a6bb511f08c0c975edd04c800b22130
+
+name:           graphlib-hs
+version:        0.1.0.1
+description:    Please see the README on GitHub at <https://github.com/mskmysht/graphlib-hs#readme>
+homepage:       https://github.com/mskmysht/graphlib-hs#readme
+bug-reports:    https://github.com/mskmysht/graphlib-hs/issues
+author:         Masaaki Miyashita
+maintainer:     m.mysht118@gmail.com
+copyright:      2019 Masaaki Miyashita
+license:        BSD3
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    ChangeLog.md
+
+source-repository head
+  type: git
+  location: https://github.com/mskmysht/graphlib-hs
+
+library
+  exposed-modules:
+      GT.Algebra.Matrix
+      GT.Algorithm.ShortestPath
+      GT.Generator.RandomGraph
+      GT.Graph
+      GT.Graph.Class
+      GT.Graph.Internal
+      GT.Parse
+  other-modules:
+      Paths_graphlib_hs
+  hs-source-dirs:
+      src
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , criterion
+    , extra
+    , hashtables
+    , hmatrix
+    , hxt
+    , lens
+    , mtl
+    , pointed
+    , primitive
+    , sfmt-hs
+    , transformers
+    , unordered-containers
+    , vector
+    , witherable
+  default-language: Haskell2010
+
+executable graphlib-hs-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_graphlib_hs
+  hs-source-dirs:
+      app
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , criterion
+    , extra
+    , graphlib-hs
+    , hashtables
+    , hmatrix
+    , hxt
+    , lens
+    , mtl
+    , pointed
+    , primitive
+    , sfmt-hs
+    , transformers
+    , unordered-containers
+    , vector
+    , witherable
+  default-language: Haskell2010
+
+test-suite graphlib-hs-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_graphlib_hs
+  hs-source-dirs:
+      test
+  ghc-options: -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      base >=4.7 && <5
+    , containers
+    , criterion
+    , extra
+    , graphlib-hs
+    , hashtables
+    , hmatrix
+    , hxt
+    , lens
+    , mtl
+    , pointed
+    , primitive
+    , sfmt-hs
+    , transformers
+    , unordered-containers
+    , vector
+    , witherable
+  default-language: Haskell2010
+
