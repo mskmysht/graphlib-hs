@@ -1,0 +1,8 @@
+cradle:
+  cabal:
+    - path: "./src/"
+      component: "lib:graphlib-hs"
+    - path: "./test/"
+      component: "test:graphlib-hs-test"
+    - path: "./exe/"
+      component: "exe:graphlib-hs"
