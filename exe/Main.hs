@@ -14,13 +14,10 @@ import GT.Graph
     UndiGr,
   )
 
-assoc' :: (Graph g n n' e e' d, Builder g n e, Foldable f) => f n' -> f e' -> g
-assoc' = assoc
-
 main :: IO ()
 main = do
   let es = [(3, 0), (1, 2), (2, 1), (3, 1)]
-  let g = assoc' @UndiGr ([]) es
+  let g = assoc @UndiGr ([]) es
   let ns :: [NodeId] = nodes g
   let es :: [EdgeId] = edges g
   print ns

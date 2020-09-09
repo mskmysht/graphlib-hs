@@ -198,5 +198,5 @@ class (Directing d, Wrap NodeId n n', Unwrap NodeId n', Wrap EdgeId e e', Unwrap
 
 class Builder g n e | g -> n e where
   -- n corresponds NodeId by the index of each n
-  assoc :: (Foldable f1, Foldable f2, Wrap NodeId n n', Wrap EdgeId e e') => f1 n' -> f2 e' -> g
-  build :: (Traversable t1, Traversable t2) => t1 NodeId -> (NodeId -> n) -> t2 EdgeId -> (NodeId -> NodeId -> e) -> g
+  assoc :: (Graph g n n' e e' d, Foldable f1, Foldable f2, Wrap NodeId n n', Wrap EdgeId e e') => f1 n' -> f2 e' -> g
+  build :: (Graph g n n' e e' d, Traversable t1, Traversable t2) => t1 NodeId -> (NodeId -> n) -> t2 EdgeId -> (NodeId -> NodeId -> e) -> g

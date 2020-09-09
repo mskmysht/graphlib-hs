@@ -416,10 +416,11 @@ _eassoc prx f es = (length es', es')
 {-# INLINE _eassoc #-}
 
 instance
-
-instance (Directing d, Wrap NodeId n n', Wrap EdgeId e e', NodeBuilderBase nc n, EdgeBuilderBase d ec e, SemiFoldable EdgeId ec e)
-  => Builder (G nc n n' ec e e' d) n e where
-  assoc ns es = G (h' + 1) nc ec ns'' es' prx where
+  (Directing d, Wrap NodeId n n', Wrap EdgeId e e', NodeBuilderBase nc n, EdgeBuilderBase d ec e, SemiFFI NodeId nc n, SemiFFI EdgeId ec e) =>
+  Builder (G nc n n' ec e e' d) n e
+  where
+  assoc ns es = G (h' + 1) nc ec ns'' es' prx
+    where
       prx = Proxy
       (ec, es') = _eassoc' @d prx es
       (h', nc, ns'') = _nassoc' ns es'
