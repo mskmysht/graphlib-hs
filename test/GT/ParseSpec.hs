@@ -31,10 +31,11 @@ data VEdge = VEdge
 
 spec :: Spec
 spec = do
-  describe "parse graphML file: test/sample.xml" $ do
-    it "works" $ do
-      f <- readFile "test/sample.xml"
-      let eg :: Either String (DiVGr (M.Map String String) (M.Map String String)) =
-            parseGraphml (\i m -> m) (\s t i m -> m) f
-      nodes <$> eg `shouldBe` (Right [(0, M.singleton "hoge" "0"), (1, M.empty), (2, M.empty), (3, M.empty)])
-      edges <$> eg `shouldBe` (Right [((0, 1), M.empty), ((1, 2), M.empty), ((2, 3), M.empty), ((3, 1), M.empty)])
+  describe "GT.Parse" $ do
+    describe "parseGraphml" $ do
+      it "makes a graph with a graphML file" $ do
+        f <- readFile "test/sample.xml"
+        let eg :: Either String (DiVGr (M.Map String String) (M.Map String String)) =
+              parseGraphml (\i m -> m) (\s t i m -> m) f
+        nodes <$> eg `shouldBe` (Right [(0, M.singleton "hoge" "0"), (1, M.empty), (2, M.empty), (3, M.empty)])
+        edges <$> eg `shouldBe` (Right [((0, 1), M.empty), ((1, 2), M.empty), ((2, 3), M.empty), ((3, 1), M.empty)])

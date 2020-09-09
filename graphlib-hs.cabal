@@ -65,6 +65,7 @@ test-suite graphlib-hs-test
   hs-source-dirs:   test
   other-modules:
       GT.ParseSpec
+      GT.GraphSpec
   build-depends:
       base >=4.7 && <5
     , graphlib-hs
